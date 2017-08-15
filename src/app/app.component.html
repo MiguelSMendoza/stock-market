@@ -12,7 +12,7 @@
   
             <div class="inner cover">
               <h1 class="cover-heading">Chart the Stock Market</h1>
-              
+              <chart type="StockChart" [options]="options" (load)="saveInstance($event.context)"></chart>
             </div>
   
             <div class="mastfoot">
