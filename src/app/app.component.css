@@ -1,0 +1,48 @@
+chart {
+    display: block;
+}
+
+a,
+a:focus,
+a:hover {
+    color: #fff;
+}
+
+header {
+    margin-bottom: 5rem;
+}
+
+
+/* Custom default button */
+
+.btn-secondary,
+.btn-secondary:hover,
+.btn-secondary:focus {
+    color: #333;
+    text-shadow: none;
+    /* Prevent inheritance from `body` */
+    background-color: #fff;
+    border: .05rem solid #fff;
+}
+
+.footer {
+    margin-top: 5rem;
+    padding-top: 1.5rem;
+    padding-right: 1rem;
+    padding-left: 1rem;
+    color: #777;
+    border-top: .05rem solid #e5e5e5;
+}
+
+@media (min-width: 48em) {
+    .container {
+        max-width: 46rem;
+    }
+}
+
+@media screen and (min-width: 48em) {
+    .footer {
+        padding-right: 0;
+        padding-left: 0;
+    }
+}

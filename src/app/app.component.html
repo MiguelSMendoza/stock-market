@@ -1,34 +1,19 @@
-<div class="site-wrapper">
-  
-        <div class="site-wrapper-inner">
-  
-          <div class="cover-container">
-  
-            <div class="masthead clearfix">
-              <div class="inner text-center">
-                <h3 class="">freeCodeCamp <i class="fa fa-free-code-camp"></i></h3>
-              </div>
-            </div>
-  
-            <div class="inner cover">
-              <h1 class="cover-heading">Chart the Stock Market</h1>
-              <chart type="StockChart" [options]="options" (load)="saveInstance($event.context)"></chart>
-            </div>
-  
-            <div class="mastfoot">
-              <div class="row">
-                <div class="col-md-8">
-                  <p>&copy; <a href="https://www.freecodecamp.org/miguelsmendoza" target="_blank">Miguel S. Mendoza</a> in 2017 for <a href="https://www.freecodecamp.org/challenges/build-a-nightlife-coordination-app" target="_blank">freeCodeCamp <i class="fa fa-free-code-camp"></i></a>.
-                  </p>
-                </div>
-                <div class="col-md-4 text-right">
-                  <p><a href="https://github.com/MiguelSMendoza/nightlife-coordination" target="_blank">Source <i class="fa fa-github"></i></a>.</p>
-                </div>
-              </div>
-            </div>
-  
-          </div>
-  
+<div class="container">
+    <header class="text-center">
+        <h1 class=" masthead-brand">Chart the Stock Market</h1>
+        <h3 class="text-muted">freeCodeCamp <i class="fa fa-free-code-camp"></i></h3>
+    </header>
+    <div class="container">
+        <app-chart></app-chart>
+        <app-search></app-search>
+    </div>
+    <footer class="footer row">
+        <div class="col-md-8">
+            <p>&copy; 2017 <a href="https://www.freecodecamp.org/miguelsmendoza" target="_blank">Miguel S. Mendoza</a> - <a href="https://www.freecodecamp.org/challenges/chart-the-stock-market" target="_blank">freeCodeCamp <i class="fa fa-free-code-camp"></i></a>
+            </p>
         </div>
-  
-      </div>
+        <div class="col-md-4">
+            <p><a href="https://github.com/MiguelSMendoza/stock-market" target="_blank">Source <i class="fa fa-github"></i></a>.</p>
+        </div>
+    </footer>
+</div>
