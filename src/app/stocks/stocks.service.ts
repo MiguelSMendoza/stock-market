@@ -72,7 +72,7 @@ export class StocksService {
   }
 
   getSymbol(search: string) {
-    return this.http.get('https:/smendoza.net/yelp/stock/' + search)
+    return this.http.get('https://smendoza.net/yelp/stock/' + search)
     .first()
     .map(
       (res) => {
