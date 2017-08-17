@@ -1,44 +1,58 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { StocksService } from '../stocks/stocks.service';
 import { Subscription } from 'rxjs/Subscription';
+import 'rxjs/add/operator/map';
 
 @Component({
   selector: 'app-chart',
   templateUrl: './chart.component.html',
   styleUrls: ['./chart.component.css']
 })
-export class ChartComponent implements OnInit {
-
-  stocks: string[];
+export class ChartComponent implements OnInit, OnDestroy {
   options: Object;
   subs: Subscription[];
   chart;
 
   ngOnInit(): void {
-    this.stocks.forEach(
-      (stock) => {
-        const sub = this.stock.getDaily(stock).subscribe(
-          (values) => {
-            this.chart.addSeries(
-              {
-                name : stock,
-                data : values,
-                tooltip: {
-                    valueDecimals: 2
+    this.stock.getSymbols().subscribe(
+      (stocks) => {
+        if (!stocks) {
+          return;
+        }
+        while (this.chart.series.length > 0) {
+          this.chart.series[0].remove(true);
+        }
+        stocks.forEach(stock => {
+          const sub = this.stock.getDaily(stock).subscribe(
+            (values) => {
+              this.chart.addSeries(
+                {
+                  name : stock,
+                  data : values,
+                  tooltip: {
+                      valueDecimals: 2
+                  }
                 }
-              }
-            );
-          }
-        );
+              );
+            }
+          );
+          this.subs.push(sub);
+          this.chart.redraw();
+        });
       }
     );
   }
+
+  ngOnDestroy(): void {
+    this.subs.forEach((sub) => sub.unsubscribe());
+  }
+
   saveInstance(chartInstance): void {
       this.chart = chartInstance;
   }
 
   constructor(private stock: StocksService) {
-    this.stocks = ['AAPL', 'GOOGL', 'GGGAX'];
+    this.subs = [];
       this.options = {
           title : { text : null },
           series : [],

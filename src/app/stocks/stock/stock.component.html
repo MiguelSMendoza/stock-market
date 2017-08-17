@@ -1,0 +1,12 @@
+<div class="card border-dark mb-3" style="max-width: 20rem;">
+    <div class="card-header">
+        <span>{{ stock.name }}</span>
+        <button type="button" class="close pull-right" style="" aria-label="Remove" (click)="onRemoveStock(stock.$key)">
+          <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="card-body text-dark">
+        <h4 class="card-title">{{ stock.symbol }}</h4>
+        <p class="card-text">{{ stock.exchDisp }} ({{ stock. exch }})</p>
+    </div>
+</div>

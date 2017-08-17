@@ -4,11 +4,37 @@ import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/first';
 import 'rxjs/add/operator/take';
 import { environment } from '../../environments/environment';
+import { FirebaseListObservable, AngularFireDatabase } from 'angularfire2/database';
+import { Stock } from './stock.model';
 
 @Injectable()
 export class StocksService {
 
-  constructor(private http: Http, private jsonp: Jsonp) { }
+  private stock: FirebaseListObservable<Stock[]>;
+
+  constructor(private http: Http, private jsonp: Jsonp, private db: AngularFireDatabase) {
+    this.stock = db.list('/stock');
+  }
+
+  removeSymbol(key) {
+    return this.db.object('/stock/' + key).remove();
+  }
+
+  addSymbol(company: Object) {
+    return this.stock.push(company);
+  }
+
+  getStocks() {
+    return this.stock;
+  }
+
+  getSymbols() {
+    return this.stock.map(
+      (stocks: Stock[]) => {
+        return stocks.map((stock) => stock.symbol);
+      }
+    );
+  }
 
   get1m(symbol: string) {
     return this.getDayInterval(symbol, '1m');
@@ -51,11 +77,7 @@ export class StocksService {
     .map(
       (res) => {
         const data = res.json();
-        console.log(data.ResultSet.Result);
-        return data.ResultSet.Result.map(
-          (result) => {
-            return result.symbol + ' ' + result.name + ' (' + result.exchDisp + ')';
-        });
+        return data.ResultSet.Result;
       }
     );
   }

@@ -24,6 +24,8 @@ export class SearchComponent implements OnInit {
   searchFailed = false;
   hideSearchingWhenUnsubscribed = new Observable(() => () => this.searching = false);
 
+  formatter = (x: {symbol: string}) => x.symbol;
+
   search = (text$: Observable<string>) =>
     text$
       .debounceTime(300)
@@ -35,9 +37,15 @@ export class SearchComponent implements OnInit {
           .catch(() => {
             this.searchFailed = true;
             return Observable.of([]);
-          }))
+          })
+        )
       .do(() => this.searching = false)
       .merge(this.hideSearchingWhenUnsubscribed)
+
+  selectedItem(event) {
+    event.preventDefault();
+    this.stock.addSymbol(event.item);
+  }
 
   constructor(private stock: StocksService) { }
 

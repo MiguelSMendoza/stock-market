@@ -1,7 +1,3 @@
-chart {
-    display: block;
-}
-
 a,
 a:focus,
 a:hover {
@@ -10,6 +6,7 @@ a:hover {
 
 header {
     margin-bottom: 5rem;
+    text-shadow: 0 .05rem .1rem rgba(0, 0, 0, .5);
 }
 
 

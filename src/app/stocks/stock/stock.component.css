@@ -1,0 +1,14 @@
+.card-header {
+    color: black;
+}
+
+.close {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    cursor: pointer;
+}
+
+.card {
+    text-align: left;
+}

@@ -14,6 +14,8 @@ import { environment } from '../environments/environment';
 import { FormsModule } from '@angular/forms';
 import { ChartComponent } from './chart/chart.component';
 import { SearchComponent } from './search/search.component';
+import { StockComponent } from './stocks/stock/stock.component';
+import { StockListComponent } from './stocks/stock-list/stock-list.component';
 
 declare var require: any;
 
@@ -29,7 +31,9 @@ declare var require: any;
   declarations: [
     AppComponent,
     ChartComponent,
-    SearchComponent
+    SearchComponent,
+    StockComponent,
+    StockListComponent
   ],
   imports: [
     FormsModule,
