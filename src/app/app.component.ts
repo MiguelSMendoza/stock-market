@@ -1,4 +1,5 @@
-import { Component, OnInit, ViewChild, OnChanges, AfterViewChecked } from '@angular/core';
+import { Component, ViewContainerRef } from '@angular/core';
+import { ToastsManager } from 'ng2-toastr/ng2-toastr';
 
 @Component({
   selector: 'app-root',
@@ -7,5 +8,9 @@ import { Component, OnInit, ViewChild, OnChanges, AfterViewChecked } from '@angu
 })
 
 export class AppComponent  {
-   constructor() {}
+  constructor(
+    public toastr: ToastsManager,
+    vcr: ViewContainerRef) {
+    this.toastr.setRootViewContainerRef(vcr);
+  }
 }

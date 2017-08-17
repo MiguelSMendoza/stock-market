@@ -16,6 +16,7 @@ import { ChartComponent } from './chart/chart.component';
 import { SearchComponent } from './search/search.component';
 import { StockComponent } from './stocks/stock/stock.component';
 import { StockListComponent } from './stocks/stock-list/stock-list.component';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 declare var require: any;
 
@@ -38,6 +39,7 @@ declare var require: any;
   imports: [
     FormsModule,
     BrowserModule,
+    BrowserAnimationsModule,
     ChartModule,
     HttpModule,
     JsonpModule,
