@@ -9,7 +9,7 @@ import { StocksService } from '../stocks.service';
 })
 export class StockComponent implements OnInit {
 
-  @Input() stock: Stock;
+  @Input() stock;
 
   constructor(private stockService: StocksService) { }
 

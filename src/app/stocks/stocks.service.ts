@@ -72,7 +72,7 @@ export class StocksService {
   }
 
   getSymbol(search: string) {
-    return this.jsonp.get('http://d.yimg.com/autoc.finance.yahoo.com/autoc?region=&lang=&callback=JSONP_CALLBACK&query=' + search)
+    return this.jsonp.get('https://d.yimg.com/autoc.finance.yahoo.com/autoc?region=&lang=&callback=JSONP_CALLBACK&query=' + search)
     .first()
     .map(
       (res) => {
