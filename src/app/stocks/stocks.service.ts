@@ -1,18 +1,18 @@
 import { Injectable } from '@angular/core';
-import { Http, RequestOptions, URLSearchParams, Jsonp } from '@angular/http';
-import 'rxjs/add/operator/map';
-import 'rxjs/add/operator/first';
-import 'rxjs/add/operator/take';
+import { Http, RequestOptions, URLSearchParams } from '@angular/http';
 import { environment } from '../../environments/environment';
 import { FirebaseListObservable, AngularFireDatabase } from 'angularfire2/database';
 import { Stock } from './stock.model';
+import 'rxjs/add/operator/map';
+import 'rxjs/add/operator/first';
+import 'rxjs/add/operator/take';
 
 @Injectable()
 export class StocksService {
 
   private stock: FirebaseListObservable<Stock[]>;
 
-  constructor(private http: Http, private jsonp: Jsonp, private db: AngularFireDatabase) {
+  constructor(private http: Http, private db: AngularFireDatabase) {
     this.stock = db.list('/stock');
   }
 
@@ -72,12 +72,12 @@ export class StocksService {
   }
 
   getSymbol(search: string) {
-    return this.jsonp.get('https://d.yimg.com/autoc.finance.yahoo.com/autoc?region=&lang=&callback=JSONP_CALLBACK&query=' + search)
+    return this.http.get('https:/smendoza.net/yelp/stock/' + search)
     .first()
     .map(
       (res) => {
         const data = res.json();
-        return data.ResultSet.Result;
+        return data;
       }
     );
   }

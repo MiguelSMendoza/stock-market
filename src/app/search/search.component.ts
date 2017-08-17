@@ -3,6 +3,7 @@ import { Http, RequestOptions, URLSearchParams } from '@angular/http';
 import { Subscription } from 'rxjs/Subscription';
 import { StocksService } from '../stocks/stocks.service';
 import { Observable } from 'rxjs/Observable';
+import { ToastsManager } from 'ng2-toastr/ng2-toastr';
 import 'rxjs/add/observable/of';
 import 'rxjs/add/operator/catch';
 import 'rxjs/add/operator/debounceTime';
@@ -11,6 +12,7 @@ import 'rxjs/add/operator/do';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/switchMap';
 import 'rxjs/add/operator/merge';
+
 
 @Component({
   selector: 'app-search',
@@ -44,10 +46,20 @@ export class SearchComponent implements OnInit {
 
   selectedItem(event) {
     event.preventDefault();
-    this.stock.addSymbol(event.item);
+    this.stock.addSymbol(event.item).then(
+      () => {
+        this.toastr.success(event.item.symbol + ' was successfully added!', 'Success');
+      }
+    )
+    .catch(
+      (error) => {
+        this.toastr.error(error.message, error.name);
+      }
+    )
+    ;
   }
 
-  constructor(private stock: StocksService) { }
+  constructor(private stock: StocksService, public toastr: ToastsManager) { }
 
   ngOnInit() {
   }
