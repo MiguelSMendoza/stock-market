@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Http, RequestOptions, URLSearchParams } from '@angular/http';
 import { environment } from '../../environments/environment';
-import { FirebaseListObservable, AngularFireDatabase } from 'angularfire2/database';
+import { AngularFireList, AngularFireDatabase } from 'angularfire2/database';
 import { Stock } from './stock.model';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/first';
@@ -10,7 +10,7 @@ import 'rxjs/add/operator/take';
 @Injectable()
 export class StocksService {
 
-  private stock: FirebaseListObservable<Stock[]>;
+  private stock: AngularFireList<Stock>;
 
   constructor(private http: Http, private db: AngularFireDatabase) {
     this.stock = db.list('/stock');
@@ -20,7 +20,7 @@ export class StocksService {
     return this.db.object('/stock/' + key).remove();
   }
 
-  addSymbol(company: Object) {
+  addSymbol(company: Stock) {
     return this.stock.push(company);
   }
 
@@ -29,7 +29,7 @@ export class StocksService {
   }
 
   getSymbols() {
-    return this.stock.map(
+    return this.stock.valueChanges().map(
       (stocks: Stock[]) => {
         return stocks.map((stock) => stock.symbol);
       }

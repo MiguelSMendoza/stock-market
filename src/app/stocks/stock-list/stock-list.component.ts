@@ -10,12 +10,12 @@ import { Stock } from '../stock.model';
 })
 export class StockListComponent implements OnInit, OnDestroy {
   subscription: Subscription;
-  stocks: Stock[];
+  stocks: {}[];
 
   constructor(private stock: StocksService) { }
 
   ngOnInit() {
-    this.subscription = this.stock.getStocks().subscribe(
+    this.subscription = this.stock.getStocks().valueChanges().subscribe(
       (stocks) => {
         this.stocks = stocks;
       }

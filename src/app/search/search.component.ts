@@ -50,13 +50,7 @@ export class SearchComponent implements OnInit {
       () => {
         this.toastr.success(event.item.symbol + ' was successfully added!', 'Success');
       }
-    )
-    .catch(
-      (error) => {
-        this.toastr.error(error.message, error.name);
-      }
-    )
-    ;
+    );
   }
 
   constructor(private stock: StocksService, public toastr: ToastsManager) { }
