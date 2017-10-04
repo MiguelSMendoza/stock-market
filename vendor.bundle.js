@@ -1,11 +1,11 @@
-webpackJsonp([3],{
+webpackJsonp(["vendor"],{
 
 /***/ "../../../../@ng-bootstrap/ng-bootstrap/accordion/accordion-config.js":
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbAccordionConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbAccordion component.
@@ -32,13 +32,13 @@ NgbAccordionConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return NgbPanelTitle; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return NgbPanelContent; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbPanel; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbAccordion; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__accordion_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/accordion/accordion-config.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return NgbPanelTitle; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return NgbPanelContent; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbPanel; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbAccordion; });
 
 
 
@@ -93,6 +93,10 @@ var NgbPanel = (function () {
          *  If not provided, it will be auto-generated.
          */
         this.id = "ngb-panel-" + nextId++;
+        /**
+         * A flag telling if the panel is currently open
+         */
+        this.isOpen = false;
     }
     return NgbPanel;
 }());
@@ -117,17 +121,13 @@ NgbPanel.propDecorators = {
 var NgbAccordion = (function () {
     function NgbAccordion(config) {
         /**
-         * A map that stores each panel state
-         */
-        this._states = new Map();
-        /**
-         * A map that stores references to all panels
-         */
-        this._panelRefs = new Map();
-        /**
          * An array or comma separated strings of panel identifiers that should be opened
          */
         this.activeIds = [];
+        /**
+         * Whether the closed panels should be hidden without destroying them
+         */
+        this.destroyOnHide = true;
         /**
          * A panel change event fired right before the panel toggle happens. See NgbPanelChangeEvent for payload details
          */
@@ -139,13 +139,12 @@ var NgbAccordion = (function () {
      * Programmatically toggle a panel with a given id.
      */
     NgbAccordion.prototype.toggle = function (panelId) {
-        var panel = this._panelRefs.get(panelId);
+        var panel = this.panels.find(function (p) { return p.id === panelId; });
         if (panel && !panel.disabled) {
-            var nextState = !this._states.get(panelId);
             var defaultPrevented_1 = false;
-            this.panelChange.emit({ panelId: panelId, nextState: nextState, preventDefault: function () { defaultPrevented_1 = true; } });
+            this.panelChange.emit({ panelId: panelId, nextState: !panel.isOpen, preventDefault: function () { defaultPrevented_1 = true; } });
             if (!defaultPrevented_1) {
-                this._states.set(panelId, nextState);
+                panel.isOpen = !panel.isOpen;
                 if (this.closeOtherPanels) {
                     this._closeOthers(panelId);
                 }
@@ -154,42 +153,28 @@ var NgbAccordion = (function () {
         }
     };
     NgbAccordion.prototype.ngAfterContentChecked = function () {
+        var _this = this;
         // active id updates
-        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_util__["h" /* isString */])(this.activeIds)) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_1__util_util__["e" /* isString */])(this.activeIds)) {
             this.activeIds = this.activeIds.split(/\s*,\s*/);
         }
-        this._updateStates();
+        // update panels open states
+        this.panels.forEach(function (panel) { return panel.isOpen = !panel.disabled && _this.activeIds.indexOf(panel.id) > -1; });
         // closeOthers updates
         if (this.activeIds.length > 1 && this.closeOtherPanels) {
             this._closeOthers(this.activeIds[0]);
             this._updateActiveIds();
         }
     };
-    /**
-     * @internal
-     */
-    NgbAccordion.prototype.isOpen = function (panelId) { return this._states.get(panelId); };
     NgbAccordion.prototype._closeOthers = function (panelId) {
-        var _this = this;
-        this._states.forEach(function (state, id) {
-            if (id !== panelId) {
-                _this._states.set(id, false);
+        this.panels.forEach(function (panel) {
+            if (panel.id !== panelId) {
+                panel.isOpen = false;
             }
         });
     };
     NgbAccordion.prototype._updateActiveIds = function () {
-        var _this = this;
-        this.activeIds =
-            this.panels.toArray().filter(function (panel) { return _this.isOpen(panel.id) && !panel.disabled; }).map(function (panel) { return panel.id; });
-    };
-    NgbAccordion.prototype._updateStates = function () {
-        var _this = this;
-        this._states.clear();
-        this._panelRefs.clear();
-        this.panels.toArray().forEach(function (panel) {
-            _this._states.set(panel.id, _this.activeIds.indexOf(panel.id) > -1 && !panel.disabled);
-            _this._panelRefs.set(panel.id, panel);
-        });
+        this.activeIds = this.panels.filter(function (panel) { return panel.isOpen && !panel.disabled; }).map(function (panel) { return panel.id; });
     };
     return NgbAccordion;
 }());
@@ -199,7 +184,7 @@ NgbAccordion.decorators = [
                 selector: 'ngb-accordion',
                 exportAs: 'ngbAccordion',
                 host: { 'role': 'tablist', '[attr.aria-multiselectable]': '!closeOtherPanels' },
-                template: "\n  <div class=\"card\">\n    <ng-template ngFor let-panel [ngForOf]=\"panels\">\n      <div role=\"tab\" id=\"{{panel.id}}-header\"\n        [class]=\"'card-header ' + (panel.type ? 'card-'+panel.type: type ? 'card-'+type : '')\" [class.active]=\"isOpen(panel.id)\">\n        <a href (click)=\"!!toggle(panel.id)\" [class.text-muted]=\"panel.disabled\" [attr.tabindex]=\"(panel.disabled ? '-1' : null)\"\n          [attr.aria-expanded]=\"isOpen(panel.id)\" [attr.aria-controls]=\"(isOpen(panel.id) ? panel.id : null)\"\n          [attr.aria-disabled]=\"panel.disabled\">\n          {{panel.title}}<ng-template [ngTemplateOutlet]=\"panel.titleTpl?.templateRef\"></ng-template>\n        </a>\n      </div>\n      <div id=\"{{panel.id}}\" role=\"tabpanel\" [attr.aria-labelledby]=\"panel.id + '-header'\" class=\"card-body\" *ngIf=\"isOpen(panel.id)\">\n        <ng-template [ngTemplateOutlet]=\"panel.contentTpl.templateRef\"></ng-template>\n      </div>\n    </ng-template>\n  </div>\n"
+                template: "\n    <ng-template ngFor let-panel [ngForOf]=\"panels\">\n      <div class=\"card\">\n        <div role=\"tab\" id=\"{{panel.id}}-header\"\n          [class]=\"'card-header ' + (panel.type ? 'card-'+panel.type: type ? 'card-'+type : '')\" [class.active]=\"panel.isOpen\">\n          <a href (click)=\"!!toggle(panel.id)\" [class.text-muted]=\"panel.disabled\" [attr.tabindex]=\"(panel.disabled ? '-1' : null)\"\n            [attr.aria-expanded]=\"panel.isOpen\" [attr.aria-controls]=\"(panel.isOpen ? panel.id : null)\"\n            [attr.aria-disabled]=\"panel.disabled\">\n            {{panel.title}}<ng-template [ngTemplateOutlet]=\"panel.titleTpl?.templateRef\"></ng-template>\n          </a>\n        </div>\n        <div id=\"{{panel.id}}\" role=\"tabpanel\" [attr.aria-labelledby]=\"panel.id + '-header'\" \n             class=\"card-body {{panel.isOpen ? 'show' : null}}\" *ngIf=\"!destroyOnHide || panel.isOpen\">\n             <ng-template [ngTemplateOutlet]=\"panel.contentTpl.templateRef\"></ng-template>\n        </div>\n      </div>\n    </ng-template>\n  "
             },] },
 ];
 /** @nocollapse */
@@ -210,6 +195,7 @@ NgbAccordion.propDecorators = {
     'panels': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ContentChildren"], args: [NgbPanel,] },],
     'activeIds': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'closeOtherPanels': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"], args: ['closeOthers',] },],
+    'destroyOnHide': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'type': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'panelChange': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Output"] },],
 };
@@ -221,6 +207,7 @@ NgbAccordion.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbAccordionModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__accordion__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/accordion/accordion.js");
@@ -230,14 +217,13 @@ NgbAccordion.propDecorators = {
 /* unused harmony reexport NgbPanelTitle */
 /* unused harmony reexport NgbPanelContent */
 /* unused harmony reexport NgbAccordionConfig */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbAccordionModule; });
 
 
 
 
 
 
-var NGB_ACCORDION_DIRECTIVES = [__WEBPACK_IMPORTED_MODULE_2__accordion__["a" /* NgbAccordion */], __WEBPACK_IMPORTED_MODULE_2__accordion__["b" /* NgbPanel */], __WEBPACK_IMPORTED_MODULE_2__accordion__["c" /* NgbPanelTitle */], __WEBPACK_IMPORTED_MODULE_2__accordion__["d" /* NgbPanelContent */]];
+var NGB_ACCORDION_DIRECTIVES = [__WEBPACK_IMPORTED_MODULE_2__accordion__["a" /* NgbAccordion */], __WEBPACK_IMPORTED_MODULE_2__accordion__["b" /* NgbPanel */], __WEBPACK_IMPORTED_MODULE_2__accordion__["d" /* NgbPanelTitle */], __WEBPACK_IMPORTED_MODULE_2__accordion__["c" /* NgbPanelContent */]];
 var NgbAccordionModule = (function () {
     function NgbAccordionModule() {
     }
@@ -258,8 +244,8 @@ NgbAccordionModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbAlertConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbAlert component.
@@ -287,9 +273,9 @@ NgbAlertConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbAlert; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__alert_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/alert/alert-config.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbAlert; });
 
 
 /**
@@ -332,13 +318,13 @@ NgbAlert.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbAlertModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__alert__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/alert/alert.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__alert_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/alert/alert-config.js");
 /* unused harmony reexport NgbAlert */
 /* unused harmony reexport NgbAlertConfig */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbAlertModule; });
 
 
 
@@ -365,6 +351,7 @@ NgbAlertModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbButtonsModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__label__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/buttons/label.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__checkbox__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/buttons/checkbox.js");
@@ -373,7 +360,6 @@ NgbAlertModule.ctorParameters = function () { return []; };
 /* unused harmony reexport NgbCheckBox */
 /* unused harmony reexport NgbRadio */
 /* unused harmony reexport NgbRadioGroup */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbButtonsModule; });
 
 
 
@@ -381,7 +367,7 @@ NgbAlertModule.ctorParameters = function () { return []; };
 
 
 
-var NGB_BUTTON_DIRECTIVES = [__WEBPACK_IMPORTED_MODULE_1__label__["a" /* NgbButtonLabel */], __WEBPACK_IMPORTED_MODULE_2__checkbox__["a" /* NgbCheckBox */], __WEBPACK_IMPORTED_MODULE_3__radio__["a" /* NgbRadioGroup */], __WEBPACK_IMPORTED_MODULE_3__radio__["b" /* NgbRadio */]];
+var NGB_BUTTON_DIRECTIVES = [__WEBPACK_IMPORTED_MODULE_1__label__["a" /* NgbButtonLabel */], __WEBPACK_IMPORTED_MODULE_2__checkbox__["a" /* NgbCheckBox */], __WEBPACK_IMPORTED_MODULE_3__radio__["b" /* NgbRadioGroup */], __WEBPACK_IMPORTED_MODULE_3__radio__["a" /* NgbRadio */]];
 var NgbButtonsModule = (function () {
     function NgbButtonsModule() {
     }
@@ -402,16 +388,16 @@ NgbButtonsModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCheckBox; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_forms__ = __webpack_require__("../../../forms/@angular/forms.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__label__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/buttons/label.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCheckBox; });
 
 
 
 var NGB_CHECKBOX_VALUE_ACCESSOR = {
-    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["b" /* NG_VALUE_ACCESSOR */],
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbCheckBox; }),
+    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["c" /* NG_VALUE_ACCESSOR */],
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbCheckBox; }),
     multi: true
 };
 /**
@@ -496,8 +482,8 @@ NgbCheckBox.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbButtonLabel; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 var NgbButtonLabel = (function () {
     function NgbButtonLabel() {
@@ -521,17 +507,17 @@ NgbButtonLabel.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbRadioGroup; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbRadio; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_forms__ = __webpack_require__("../../../forms/@angular/forms.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__label__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/buttons/label.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbRadioGroup; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbRadio; });
 
 
 
 var NGB_RADIO_VALUE_ACCESSOR = {
-    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["b" /* NG_VALUE_ACCESSOR */],
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbRadioGroup; }),
+    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["c" /* NG_VALUE_ACCESSOR */],
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbRadioGroup; }),
     multi: true
 };
 var nextId = 0;
@@ -694,8 +680,8 @@ NgbRadio.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCarouselConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbCarousel component.
@@ -724,12 +710,12 @@ NgbCarouselConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__carousel_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/carousel/carousel-config.js");
 /* unused harmony export NgbSlide */
 /* unused harmony export NgbCarousel */
 /* unused harmony export NgbSlideEventDirection */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NGB_CAROUSEL_DIRECTIVES; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__carousel_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/carousel/carousel-config.js");
 
 
 var nextId = 0;
@@ -918,6 +904,7 @@ var NGB_CAROUSEL_DIRECTIVES = [NgbCarousel, NgbSlide];
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCarouselModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__carousel__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/carousel/carousel.js");
@@ -925,7 +912,6 @@ var NGB_CAROUSEL_DIRECTIVES = [NgbCarousel, NgbSlide];
 /* unused harmony reexport NgbCarousel */
 /* unused harmony reexport NgbSlide */
 /* unused harmony reexport NgbCarouselConfig */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCarouselModule; });
 
 
 
@@ -952,8 +938,8 @@ NgbCarouselModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCollapse; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * The NgbCollapse directive provides a simple way to hide and show an element with animations.
@@ -988,10 +974,10 @@ NgbCollapse.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCollapseModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__collapse__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/collapse/collapse.js");
 /* unused harmony reexport NgbCollapse */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCollapseModule; });
 
 
 
@@ -1015,8 +1001,8 @@ NgbCollapseModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbDatepicker component.
@@ -1048,8 +1034,8 @@ NgbDatepickerConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerDayView; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 var NgbDatepickerDayView = (function () {
     function NgbDatepickerDayView() {
@@ -1091,9 +1077,9 @@ NgbDatepickerDayView.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerI18n; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbDatepickerI18nDefault; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -1145,6 +1131,7 @@ NgbDatepickerI18nDefault.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbInputDatepicker; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_forms__ = __webpack_require__("../../../forms/@angular/forms.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__ngb_date__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-date.js");
@@ -1153,7 +1140,6 @@ NgbDatepickerI18nDefault.ctorParameters = function () { return []; };
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__util_positioning__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/positioning.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__ngb_calendar__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-calendar.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__datepicker_service__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/datepicker-service.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbInputDatepicker; });
 
 
 
@@ -1163,13 +1149,13 @@ NgbDatepickerI18nDefault.ctorParameters = function () { return []; };
 
 
 var NGB_DATEPICKER_VALUE_ACCESSOR = {
-    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["b" /* NG_VALUE_ACCESSOR */],
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbInputDatepicker; }),
+    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["c" /* NG_VALUE_ACCESSOR */],
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbInputDatepicker; }),
     multi: true
 };
 var NGB_DATEPICKER_VALIDATOR = {
-    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["c" /* NG_VALIDATORS */],
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbInputDatepicker; }),
+    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["b" /* NG_VALIDATORS */],
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbInputDatepicker; }),
     multi: true
 };
 /**
@@ -1188,9 +1174,11 @@ var NgbInputDatepicker = (function () {
         this._calendar = _calendar;
         this._cRef = null;
         /**
-         * Placement of a datepicker popup. Accepts: "top", "bottom", "left", "right", "bottom-left",
-         * "bottom-right" etc.
-         */
+            * Placement of a datepicker popup accepts:
+            *    "top", "top-left", "top-right", "bottom", "bottom-left", "bottom-right",
+            *    "left", "left-top", "left-bottom", "right", "right-top", "right-bottom"
+            * and array of above values.
+            */
         this.placement = 'bottom-left';
         /**
          * An event fired when navigation happens and currently displayed month changes.
@@ -1202,7 +1190,7 @@ var NgbInputDatepicker = (function () {
         this._validatorChange = function () { };
         this._zoneSubscription = ngZone.onStable.subscribe(function () {
             if (_this._cRef) {
-                __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__util_positioning__["a" /* positionElements */])(_this._elRef.nativeElement, _this._cRef.location.nativeElement, _this.placement);
+                Object(__WEBPACK_IMPORTED_MODULE_5__util_positioning__["a" /* positionElements */])(_this._elRef.nativeElement, _this._cRef.location.nativeElement, _this.placement);
             }
         });
     }
@@ -1353,7 +1341,7 @@ NgbInputDatepicker.decorators = [
 ];
 /** @nocollapse */
 NgbInputDatepicker.ctorParameters = function () { return [
-    { type: __WEBPACK_IMPORTED_MODULE_4__ngb_date_parser_formatter__["a" /* NgbDateParserFormatter */], },
+    { type: __WEBPACK_IMPORTED_MODULE_4__ngb_date_parser_formatter__["b" /* NgbDateParserFormatter */], },
     { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ElementRef"], },
     { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewContainerRef"], },
     { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Renderer2"], },
@@ -1385,11 +1373,11 @@ NgbInputDatepicker.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerKeyMapService; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__datepicker_service__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/datepicker-service.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__ngb_calendar__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-calendar.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerKeyMapService; });
 
 
 
@@ -1420,7 +1408,7 @@ var NgbDatepickerKeyMapService = (function () {
         });
     }
     NgbDatepickerKeyMapService.prototype.processKey = function (event) {
-        if (Key[__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__util_util__["a" /* toString */])(event.which)]) {
+        if (Key[Object(__WEBPACK_IMPORTED_MODULE_3__util_util__["i" /* toString */])(event.which)]) {
             switch (event.which) {
                 case Key.PageUp:
                     this._service.focusMove(event.shiftKey ? 'y' : 'm', -1);
@@ -1476,10 +1464,10 @@ NgbDatepickerKeyMapService.ctorParameters = function () { return [
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerMonthView; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__ngb_date__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-date.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__datepicker_i18n__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/datepicker-i18n.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerMonthView; });
 
 
 
@@ -1508,7 +1496,7 @@ NgbDatepickerMonthView.decorators = [
                 selector: 'ngb-datepicker-month-view',
                 host: { 'class': 'd-block' },
                 styles: ["\n    .ngb-dp-weekday, .ngb-dp-week-number {\n      line-height: 2rem;\n    }\n    .ngb-dp-day, .ngb-dp-weekday, .ngb-dp-week-number {\n      width: 2rem;\n      height: 2rem;\n    }\n    .ngb-dp-day {\n      cursor: pointer;\n    }\n    .ngb-dp-day.disabled, .ngb-dp-day.hidden {\n      cursor: default;\n    }\n  "],
-                template: "\n    <div *ngIf=\"showWeekdays\" class=\"ngb-dp-week d-flex\">\n      <div *ngIf=\"showWeekNumbers\" class=\"ngb-dp-weekday\"></div>\n      <div *ngFor=\"let w of month.weekdays\" class=\"ngb-dp-weekday small text-center text-info font-italic\">\n        {{ i18n.getWeekdayShortName(w) }}\n      </div>\n    </div>\n    <ng-template ngFor let-week [ngForOf]=\"month.weeks\">\n      <div *ngIf=\"!isCollapsed(week)\" class=\"ngb-dp-week d-flex\">\n        <div *ngIf=\"showWeekNumbers\" class=\"ngb-dp-week-number small text-center font-italic text-muted\">{{ week.number }}</div>\n        <div *ngFor=\"let day of week.days\" (click)=\"doSelect(day)\" class=\"ngb-dp-day\" [class.disabled]=\"day.context.disabled\"\n         [class.hidden]=\"isHidden(day)\">\n          <ng-template [ngIf]=\"!isHidden(day)\">\n            <ng-template [ngTemplateOutlet]=\"dayTemplate\" [ngOutletContext]=\"day.context\"></ng-template>\n          </ng-template>\n        </div>\n      </div>\n    </ng-template>\n  "
+                template: "\n    <div *ngIf=\"showWeekdays\" class=\"ngb-dp-week d-flex\">\n      <div *ngIf=\"showWeekNumbers\" class=\"ngb-dp-weekday\"></div>\n      <div *ngFor=\"let w of month.weekdays\" class=\"ngb-dp-weekday small text-center text-info font-italic\">\n        {{ i18n.getWeekdayShortName(w) }}\n      </div>\n    </div>\n    <ng-template ngFor let-week [ngForOf]=\"month.weeks\">\n      <div *ngIf=\"!isCollapsed(week)\" class=\"ngb-dp-week d-flex\">\n        <div *ngIf=\"showWeekNumbers\" class=\"ngb-dp-week-number small text-center font-italic text-muted\">{{ week.number }}</div>\n        <div *ngFor=\"let day of week.days\" (click)=\"doSelect(day)\" class=\"ngb-dp-day\" [class.disabled]=\"day.context.disabled\"\n         [class.hidden]=\"isHidden(day)\">\n          <ng-template [ngIf]=\"!isHidden(day)\">\n            <ng-template [ngTemplateOutlet]=\"dayTemplate\" [ngTemplateOutletContext]=\"day.context\"></ng-template>\n          </ng-template>\n        </div>\n      </div>\n    </ng-template>\n  "
             },] },
 ];
 /** @nocollapse */
@@ -1531,12 +1519,12 @@ NgbDatepickerMonthView.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerNavigationSelect; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__ngb_date__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-date.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__datepicker_i18n__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/datepicker-i18n.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__ngb_calendar__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-calendar.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerNavigationSelect; });
 
 
 
@@ -1556,8 +1544,8 @@ var NgbDatepickerNavigationSelect = (function () {
             this._generateMonths();
         }
     };
-    NgbDatepickerNavigationSelect.prototype.changeMonth = function (month) { this.select.emit(new __WEBPACK_IMPORTED_MODULE_1__ngb_date__["a" /* NgbDate */](this.date.year, __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["e" /* toInteger */])(month), 1)); };
-    NgbDatepickerNavigationSelect.prototype.changeYear = function (year) { this.select.emit(new __WEBPACK_IMPORTED_MODULE_1__ngb_date__["a" /* NgbDate */](__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["e" /* toInteger */])(year), this.date.month, 1)); };
+    NgbDatepickerNavigationSelect.prototype.changeMonth = function (month) { this.select.emit(new __WEBPACK_IMPORTED_MODULE_1__ngb_date__["a" /* NgbDate */](this.date.year, Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["h" /* toInteger */])(month), 1)); };
+    NgbDatepickerNavigationSelect.prototype.changeYear = function (year) { this.select.emit(new __WEBPACK_IMPORTED_MODULE_1__ngb_date__["a" /* NgbDate */](Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["h" /* toInteger */])(year), this.date.month, 1)); };
     NgbDatepickerNavigationSelect.prototype._generateMonths = function () {
         var _this = this;
         this.months = this.calendar.getMonths();
@@ -1605,11 +1593,11 @@ NgbDatepickerNavigationSelect.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerNavigation; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__datepicker_view_model__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/datepicker-view-model.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__datepicker_i18n__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/datepicker-i18n.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__ngb_calendar__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-calendar.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerNavigation; });
 
 
 
@@ -1667,6 +1655,7 @@ NgbDatepickerNavigation.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerService; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ngb_calendar__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-calendar.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__ngb_date__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-date.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
@@ -1676,7 +1665,6 @@ NgbDatepickerNavigation.propDecorators = {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__datepicker_tools__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/datepicker-tools.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6_rxjs_operator_filter__ = __webpack_require__("../../../../rxjs/operator/filter.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6_rxjs_operator_filter___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_6_rxjs_operator_filter__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerService; });
 
 
 
@@ -1706,7 +1694,7 @@ var NgbDatepickerService = (function () {
     });
     Object.defineProperty(NgbDatepickerService.prototype, "displayMonths", {
         set: function (months) {
-            if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__util_util__["i" /* isInteger */])(months) && months > 0 && this._state.displayMonths !== months) {
+            if (Object(__WEBPACK_IMPORTED_MODULE_3__util_util__["c" /* isInteger */])(months) && months > 0 && this._state.displayMonths !== months) {
                 this._nextState({ displayMonths: months });
             }
         },
@@ -1715,7 +1703,7 @@ var NgbDatepickerService = (function () {
     });
     Object.defineProperty(NgbDatepickerService.prototype, "firstDayOfWeek", {
         set: function (firstDayOfWeek) {
-            if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__util_util__["i" /* isInteger */])(firstDayOfWeek) && firstDayOfWeek >= 0 && this._state.firstDayOfWeek !== firstDayOfWeek) {
+            if (Object(__WEBPACK_IMPORTED_MODULE_3__util_util__["c" /* isInteger */])(firstDayOfWeek) && firstDayOfWeek >= 0 && this._state.firstDayOfWeek !== firstDayOfWeek) {
                 this._nextState({ firstDayOfWeek: firstDayOfWeek });
             }
         },
@@ -1733,7 +1721,7 @@ var NgbDatepickerService = (function () {
     });
     Object.defineProperty(NgbDatepickerService.prototype, "maxDate", {
         set: function (date) {
-            if (date === undefined || this._calendar.isValid(date) && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["a" /* isChangedDate */])(this._state.maxDate, date)) {
+            if (date === undefined || this._calendar.isValid(date) && Object(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["d" /* isChangedDate */])(this._state.maxDate, date)) {
                 this._nextState({ maxDate: date });
             }
         },
@@ -1751,7 +1739,7 @@ var NgbDatepickerService = (function () {
     });
     Object.defineProperty(NgbDatepickerService.prototype, "minDate", {
         set: function (date) {
-            if (date === undefined || this._calendar.isValid(date) && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["a" /* isChangedDate */])(this._state.minDate, date)) {
+            if (date === undefined || this._calendar.isValid(date) && Object(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["d" /* isChangedDate */])(this._state.minDate, date)) {
                 this._nextState({ minDate: date });
             }
         },
@@ -1759,7 +1747,7 @@ var NgbDatepickerService = (function () {
         configurable: true
     });
     NgbDatepickerService.prototype.focus = function (date) {
-        if (!this._state.disabled && this._calendar.isValid(date) && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["a" /* isChangedDate */])(this._state.focusDate, date)) {
+        if (!this._state.disabled && this._calendar.isValid(date) && Object(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["d" /* isChangedDate */])(this._state.focusDate, date)) {
             this._nextState({ focusDate: date });
         }
     };
@@ -1767,7 +1755,7 @@ var NgbDatepickerService = (function () {
         this.focus(this._calendar.getNext(this._state.focusDate, period, number));
     };
     NgbDatepickerService.prototype.focusSelect = function () {
-        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["b" /* isDateSelectable */])(this._state.months, this._state.focusDate)) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["e" /* isDateSelectable */])(this._state.months, this._state.focusDate)) {
             this.select(this._state.focusDate);
         }
     };
@@ -1778,7 +1766,7 @@ var NgbDatepickerService = (function () {
     };
     NgbDatepickerService.prototype.select = function (date) {
         var validDate = this.toValidDate(date, null);
-        if (!this._state.disabled && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["a" /* isChangedDate */])(this._state.selectedDate, validDate)) {
+        if (!this._state.disabled && Object(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["d" /* isChangedDate */])(this._state.selectedDate, validDate)) {
             this._nextState({ selectedDate: validDate });
         }
     };
@@ -1821,9 +1809,9 @@ var NgbDatepickerService = (function () {
         var startDate = state.firstDate;
         // min/max dates changed
         if ('minDate' in patch || 'maxDate' in patch) {
-            __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["c" /* checkMinBeforeMax */])(state.minDate, state.maxDate);
-            state.focusDate = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["d" /* checkDateInRange */])(state.focusDate, state.minDate, state.maxDate);
-            state.firstDate = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["d" /* checkDateInRange */])(state.firstDate, state.minDate, state.maxDate);
+            Object(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["c" /* checkMinBeforeMax */])(state.minDate, state.maxDate);
+            state.focusDate = Object(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["b" /* checkDateInRange */])(state.focusDate, state.minDate, state.maxDate);
+            state.firstDate = Object(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["b" /* checkDateInRange */])(state.firstDate, state.minDate, state.maxDate);
             startDate = state.focusDate;
         }
         // disabled
@@ -1832,7 +1820,7 @@ var NgbDatepickerService = (function () {
         }
         // focus date changed
         if ('focusDate' in patch) {
-            state.focusDate = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["d" /* checkDateInRange */])(state.focusDate, state.minDate, state.maxDate);
+            state.focusDate = Object(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["b" /* checkDateInRange */])(state.focusDate, state.minDate, state.maxDate);
             startDate = state.focusDate;
             // nothing to rebuild if only focus changed and it is still visible
             if (state.months.length !== 0 && !state.focusDate.before(state.firstDate) &&
@@ -1842,14 +1830,14 @@ var NgbDatepickerService = (function () {
         }
         // first date changed
         if ('firstDate' in patch) {
-            state.firstDate = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["d" /* checkDateInRange */])(state.firstDate, state.minDate, state.maxDate);
+            state.firstDate = Object(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["b" /* checkDateInRange */])(state.firstDate, state.minDate, state.maxDate);
             startDate = state.firstDate;
         }
         // rebuilding months
         if (startDate) {
             var forceRebuild = 'firstDayOfWeek' in patch || 'markDisabled' in patch || 'minDate' in patch ||
                 'maxDate' in patch || 'disabled' in patch;
-            var months = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["e" /* buildMonths */])(this._calendar, state.months, startDate, state.minDate, state.maxDate, state.displayMonths, state.firstDayOfWeek, state.markDisabled, forceRebuild);
+            var months = Object(__WEBPACK_IMPORTED_MODULE_5__datepicker_tools__["a" /* buildMonths */])(this._calendar, state.months, startDate, state.minDate, state.maxDate, state.displayMonths, state.firstDayOfWeek, state.markDisabled, forceRebuild);
             // updating months and boundary dates
             state.months = months;
             state.firstDate = months.length > 0 ? months[0].firstDate : undefined;
@@ -1882,15 +1870,15 @@ NgbDatepickerService.ctorParameters = function () { return [
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ngb_date__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-date.js");
-/* harmony export (immutable) */ __webpack_exports__["a"] = isChangedDate;
+/* harmony export (immutable) */ __webpack_exports__["d"] = isChangedDate;
 /* unused harmony export dateComparator */
 /* harmony export (immutable) */ __webpack_exports__["c"] = checkMinBeforeMax;
-/* harmony export (immutable) */ __webpack_exports__["d"] = checkDateInRange;
-/* harmony export (immutable) */ __webpack_exports__["b"] = isDateSelectable;
-/* harmony export (immutable) */ __webpack_exports__["e"] = buildMonths;
+/* harmony export (immutable) */ __webpack_exports__["b"] = checkDateInRange;
+/* harmony export (immutable) */ __webpack_exports__["e"] = isDateSelectable;
+/* harmony export (immutable) */ __webpack_exports__["a"] = buildMonths;
 /* unused harmony export buildMonth */
 /* unused harmony export getFirstViewDate */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ngb_date__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-date.js");
 
 function isChangedDate(prev, next) {
     return !dateComparator(prev, next);
@@ -2021,6 +2009,7 @@ var NavigationEvent;
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepicker; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_forms__ = __webpack_require__("../../../forms/@angular/forms.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__ngb_calendar__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-calendar.js");
@@ -2032,7 +2021,6 @@ var NavigationEvent;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__datepicker_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/datepicker-config.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__datepicker_i18n__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/datepicker-i18n.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__datepicker_tools__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/datepicker-tools.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepicker; });
 
 
 
@@ -2045,8 +2033,8 @@ var NavigationEvent;
 
 
 var NGB_DATEPICKER_VALUE_ACCESSOR = {
-    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["b" /* NG_VALUE_ACCESSOR */],
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbDatepicker; }),
+    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["c" /* NG_VALUE_ACCESSOR */],
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbDatepicker; }),
     multi: true
 };
 /**
@@ -2086,7 +2074,7 @@ var NgbDatepicker = (function () {
             var oldSelectedDate = _this.model ? _this.model.selectedDate : null;
             _this.model = model;
             // handling selection change
-            if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_10__datepicker_tools__["a" /* isChangedDate */])(newSelectedDate, oldSelectedDate)) {
+            if (Object(__WEBPACK_IMPORTED_MODULE_10__datepicker_tools__["d" /* isChangedDate */])(newSelectedDate, oldSelectedDate)) {
                 _this.onTouched();
                 _this.onChange(newSelectedDate ? { year: newSelectedDate.year, month: newSelectedDate.month, day: newSelectedDate.day } :
                     null);
@@ -2125,7 +2113,7 @@ var NgbDatepicker = (function () {
     NgbDatepicker.prototype.ngOnDestroy = function () { this._subscription.unsubscribe(); };
     NgbDatepicker.prototype.ngOnInit = function () {
         if (this.model === undefined) {
-            this._service.displayMonths = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__util_util__["e" /* toInteger */])(this.displayMonths);
+            this._service.displayMonths = Object(__WEBPACK_IMPORTED_MODULE_7__util_util__["h" /* toInteger */])(this.displayMonths);
             this._service.markDisabled = this.markDisabled;
             this._service.firstDayOfWeek = this.firstDayOfWeek;
             this._setDates();
@@ -2133,7 +2121,7 @@ var NgbDatepicker = (function () {
     };
     NgbDatepicker.prototype.ngOnChanges = function (changes) {
         if (changes['displayMonths']) {
-            this._service.displayMonths = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__util_util__["e" /* toInteger */])(this.displayMonths);
+            this._service.displayMonths = Object(__WEBPACK_IMPORTED_MODULE_7__util_util__["h" /* toInteger */])(this.displayMonths);
         }
         if (changes['markDisabled']) {
             this._service.markDisabled = this.markDisabled;
@@ -2227,6 +2215,7 @@ NgbDatepicker.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__datepicker__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/datepicker.js");
@@ -2252,7 +2241,6 @@ NgbDatepicker.propDecorators = {
 /* unused harmony reexport NgbDatepickerConfig */
 /* unused harmony reexport NgbDatepickerI18n */
 /* unused harmony reexport NgbDateParserFormatter */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDatepickerModule; });
 
 
 
@@ -2286,7 +2274,7 @@ var NgbDatepickerModule = (function () {
             providers: [
                 { provide: __WEBPACK_IMPORTED_MODULE_9__ngb_calendar__["a" /* NgbCalendar */], useClass: __WEBPACK_IMPORTED_MODULE_9__ngb_calendar__["b" /* NgbCalendarGregorian */] },
                 { provide: __WEBPACK_IMPORTED_MODULE_8__datepicker_i18n__["a" /* NgbDatepickerI18n */], useClass: __WEBPACK_IMPORTED_MODULE_8__datepicker_i18n__["b" /* NgbDatepickerI18nDefault */] },
-                { provide: __WEBPACK_IMPORTED_MODULE_10__ngb_date_parser_formatter__["a" /* NgbDateParserFormatter */], useClass: __WEBPACK_IMPORTED_MODULE_10__ngb_date_parser_formatter__["b" /* NgbDateISOParserFormatter */] }, __WEBPACK_IMPORTED_MODULE_12__datepicker_config__["a" /* NgbDatepickerConfig */]
+                { provide: __WEBPACK_IMPORTED_MODULE_10__ngb_date_parser_formatter__["b" /* NgbDateParserFormatter */], useClass: __WEBPACK_IMPORTED_MODULE_10__ngb_date_parser_formatter__["a" /* NgbDateISOParserFormatter */] }, __WEBPACK_IMPORTED_MODULE_12__datepicker_config__["a" /* NgbDatepickerConfig */]
             ]
         };
     };
@@ -2314,10 +2302,10 @@ NgbDatepickerModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCalendarHijri; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ngb_calendar__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-calendar.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCalendarHijri; });
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -2335,7 +2323,7 @@ var NgbCalendarHijri = (function (_super) {
     NgbCalendarHijri.prototype.getMonths = function () { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; };
     NgbCalendarHijri.prototype.getWeeksPerMonth = function () { return 6; };
     NgbCalendarHijri.prototype.isValid = function (date) {
-        return date && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(date.year) && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(date.month) && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(date.day) &&
+        return date && Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(date.year) && Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(date.month) && Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(date.day) &&
             !isNaN(this.toGregorian(date).getTime());
     };
     NgbCalendarHijri.prototype.setDay = function (date, day) {
@@ -2398,10 +2386,10 @@ NgbCalendarHijri.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* unused harmony export NgbCalendarIslamicCivil */
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ngb_calendar_hijri__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/hijri/ngb-calendar-hijri.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__ngb_date__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-date.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* unused harmony export NgbCalendarIslamicCivil */
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -2552,11 +2540,11 @@ NgbCalendarIslamicCivil.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCalendar; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbCalendarGregorian; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ngb_date__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/datepicker/ngb-date.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbCalendar; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbCalendarGregorian; });
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -2640,7 +2628,7 @@ var NgbCalendarGregorian = (function (_super) {
     };
     NgbCalendarGregorian.prototype.getToday = function () { return fromJSDate(new Date()); };
     NgbCalendarGregorian.prototype.isValid = function (date) {
-        if (!date || !__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["i" /* isInteger */])(date.year) || !__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["i" /* isInteger */])(date.month) || !__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["i" /* isInteger */])(date.day)) {
+        if (!date || !Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["c" /* isInteger */])(date.year) || !Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["c" /* isInteger */])(date.month) || !Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["c" /* isInteger */])(date.day)) {
             return false;
         }
         var jsDate = toJSDate(date);
@@ -2663,9 +2651,9 @@ NgbCalendarGregorian.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbDateParserFormatter; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDateISOParserFormatter; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDateParserFormatter; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbDateISOParserFormatter; });
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -2691,21 +2679,21 @@ var NgbDateISOParserFormatter = (function (_super) {
     NgbDateISOParserFormatter.prototype.parse = function (value) {
         if (value) {
             var dateParts = value.trim().split('-');
-            if (dateParts.length === 1 && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[0])) {
-                return { year: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* toInteger */])(dateParts[0]), month: null, day: null };
+            if (dateParts.length === 1 && Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[0])) {
+                return { year: Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* toInteger */])(dateParts[0]), month: null, day: null };
             }
-            else if (dateParts.length === 2 && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[0]) && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[1])) {
-                return { year: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* toInteger */])(dateParts[0]), month: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* toInteger */])(dateParts[1]), day: null };
+            else if (dateParts.length === 2 && Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[0]) && Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[1])) {
+                return { year: Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* toInteger */])(dateParts[0]), month: Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* toInteger */])(dateParts[1]), day: null };
             }
-            else if (dateParts.length === 3 && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[0]) && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[1]) && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[2])) {
-                return { year: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* toInteger */])(dateParts[0]), month: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* toInteger */])(dateParts[1]), day: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* toInteger */])(dateParts[2]) };
+            else if (dateParts.length === 3 && Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[0]) && Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[1]) && Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(dateParts[2])) {
+                return { year: Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* toInteger */])(dateParts[0]), month: Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* toInteger */])(dateParts[1]), day: Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* toInteger */])(dateParts[2]) };
             }
         }
         return null;
     };
     NgbDateISOParserFormatter.prototype.format = function (date) {
         return date ?
-            date.year + "-" + (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(date.month) ? __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["f" /* padNumber */])(date.month) : '') + "-" + (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(date.day) ? __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["f" /* padNumber */])(date.day) : '') :
+            date.year + "-" + (Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(date.month) ? Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["f" /* padNumber */])(date.month) : '') + "-" + (Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(date.day) ? Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["f" /* padNumber */])(date.day) : '') :
             '';
     };
     return NgbDateISOParserFormatter;
@@ -2777,8 +2765,8 @@ var NgbDate = (function () {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDropdownConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbDropdown directive.
@@ -2787,8 +2775,8 @@ var NgbDate = (function () {
  */
 var NgbDropdownConfig = (function () {
     function NgbDropdownConfig() {
-        this.up = false;
         this.autoClose = true;
+        this.placement = 'bottom-left';
     }
     return NgbDropdownConfig;
 }());
@@ -2806,22 +2794,42 @@ NgbDropdownConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbDropdownMenu; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return NgbDropdownToggle; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDropdown; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__dropdown_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/dropdown/dropdown-config.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return NgbDropdownMenu; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbDropdownToggle; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDropdown; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_positioning__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/positioning.js");
+
 
 
 /**
  */
 var NgbDropdownMenu = (function () {
-    function NgbDropdownMenu(dropdown, _elementRef) {
+    function NgbDropdownMenu(dropdown, _elementRef, _renderer) {
         this.dropdown = dropdown;
         this._elementRef = _elementRef;
+        this._renderer = _renderer;
+        this.placement = 'bottom';
         this.isOpen = false;
     }
     NgbDropdownMenu.prototype.isEventFrom = function ($event) { return this._elementRef.nativeElement.contains($event.target); };
+    NgbDropdownMenu.prototype.position = function (triggerEl, placement) {
+        this.applyPlacement(Object(__WEBPACK_IMPORTED_MODULE_2__util_positioning__["a" /* positionElements */])(triggerEl, this._elementRef.nativeElement, placement));
+    };
+    NgbDropdownMenu.prototype.applyPlacement = function (_placement) {
+        // remove the current placement classes
+        this._renderer.removeClass(this._elementRef.nativeElement.parentElement, 'dropup');
+        this.placement = _placement;
+        /**
+         * apply the new placement
+         * change the class only in case of top to show up arrow
+         * or use defualt which is dropdown to show down arrow
+         */
+        if (_placement.search('^top') !== -1) {
+            this._renderer.addClass(this._elementRef.nativeElement.parentElement, 'dropup');
+        }
+    };
     return NgbDropdownMenu;
 }());
 
@@ -2830,8 +2838,9 @@ NgbDropdownMenu.decorators = [
 ];
 /** @nocollapse */
 NgbDropdownMenu.ctorParameters = function () { return [
-    { type: undefined, decorators: [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Inject"], args: [__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbDropdown; }),] },] },
+    { type: undefined, decorators: [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Inject"], args: [Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbDropdown; }),] },] },
     { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ElementRef"], },
+    { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Renderer2"], },
 ]; };
 /**
  * Allows the dropdown to be toggled via click. This directive is optional.
@@ -2840,6 +2849,7 @@ var NgbDropdownToggle = (function () {
     function NgbDropdownToggle(dropdown, _elementRef) {
         this.dropdown = dropdown;
         this._elementRef = _elementRef;
+        this.anchorEl = _elementRef.nativeElement;
     }
     NgbDropdownToggle.prototype.toggleOpen = function () { this.dropdown.toggle(); };
     NgbDropdownToggle.prototype.isEventFrom = function ($event) { return this._elementRef.nativeElement.contains($event.target); };
@@ -2859,14 +2869,15 @@ NgbDropdownToggle.decorators = [
 ];
 /** @nocollapse */
 NgbDropdownToggle.ctorParameters = function () { return [
-    { type: undefined, decorators: [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Inject"], args: [__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbDropdown; }),] },] },
+    { type: undefined, decorators: [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Inject"], args: [Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbDropdown; }),] },] },
     { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ElementRef"], },
 ]; };
 /**
  * Transforms a node into a dropdown.
  */
 var NgbDropdown = (function () {
-    function NgbDropdown(config) {
+    function NgbDropdown(config, ngZone) {
+        var _this = this;
         /**
          *  Defines whether or not the dropdown-menu is open initially.
          */
@@ -2876,9 +2887,15 @@ var NgbDropdown = (function () {
          *  Event's payload equals whether dropdown is open.
          */
         this.openChange = new __WEBPACK_IMPORTED_MODULE_0__angular_core__["EventEmitter"]();
-        this.up = config.up;
+        this.placement = config.placement;
         this.autoClose = config.autoClose;
+        this._zoneSubscription = ngZone.onStable.subscribe(function () { _this._positionMenu(); });
     }
+    NgbDropdown.prototype.ngOnInit = function () {
+        if (this._menu) {
+            this._menu.applyPlacement(Array.isArray(this.placement) ? (this.placement[0]) : this.placement);
+        }
+    };
     /**
      * Checks if the dropdown menu is open or not.
      */
@@ -2889,6 +2906,7 @@ var NgbDropdown = (function () {
     NgbDropdown.prototype.open = function () {
         if (!this._open) {
             this._open = true;
+            this._positionMenu();
             this.openChange.emit(true);
         }
     };
@@ -2930,8 +2948,14 @@ var NgbDropdown = (function () {
             this.close();
         }
     };
+    NgbDropdown.prototype.ngOnDestroy = function () { this._zoneSubscription.unsubscribe(); };
     NgbDropdown.prototype._isEventFromToggle = function ($event) { return this._toggle ? this._toggle.isEventFrom($event) : false; };
     NgbDropdown.prototype._isEventFromMenu = function ($event) { return this._menu ? this._menu.isEventFrom($event) : false; };
+    NgbDropdown.prototype._positionMenu = function () {
+        if (this.isOpen() && this._menu && this._toggle) {
+            this._menu.position(this._toggle.anchorEl, this.placement);
+        }
+    };
     return NgbDropdown;
 }());
 
@@ -2940,8 +2964,6 @@ NgbDropdown.decorators = [
                 selector: '[ngbDropdown]',
                 exportAs: 'ngbDropdown',
                 host: {
-                    '[class.dropdown]': '!up',
-                    '[class.dropup]': 'up',
                     '[class.show]': 'isOpen()',
                     '(keyup.esc)': 'closeFromOutsideEsc()',
                     '(document:click)': 'closeFromClick($event)'
@@ -2951,13 +2973,14 @@ NgbDropdown.decorators = [
 /** @nocollapse */
 NgbDropdown.ctorParameters = function () { return [
     { type: __WEBPACK_IMPORTED_MODULE_1__dropdown_config__["a" /* NgbDropdownConfig */], },
+    { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["NgZone"], },
 ]; };
 NgbDropdown.propDecorators = {
     '_menu': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ContentChild"], args: [NgbDropdownMenu,] },],
     '_toggle': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ContentChild"], args: [NgbDropdownToggle,] },],
-    'up': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'autoClose': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     '_open': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"], args: ['open',] },],
+    'placement': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'openChange': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Output"] },],
 };
 //# sourceMappingURL=dropdown.js.map
@@ -2968,6 +2991,7 @@ NgbDropdown.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDropdownModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__dropdown__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/dropdown/dropdown.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__dropdown_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/dropdown/dropdown-config.js");
@@ -2975,13 +2999,12 @@ NgbDropdown.propDecorators = {
 /* unused harmony reexport NgbDropdownToggle */
 /* unused harmony reexport NgbDropdownMenu */
 /* unused harmony reexport NgbDropdownConfig */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbDropdownModule; });
 
 
 
 
 
-var NGB_DROPDOWN_DIRECTIVES = [__WEBPACK_IMPORTED_MODULE_1__dropdown__["a" /* NgbDropdown */], __WEBPACK_IMPORTED_MODULE_1__dropdown__["b" /* NgbDropdownToggle */], __WEBPACK_IMPORTED_MODULE_1__dropdown__["c" /* NgbDropdownMenu */]];
+var NGB_DROPDOWN_DIRECTIVES = [__WEBPACK_IMPORTED_MODULE_1__dropdown__["a" /* NgbDropdown */], __WEBPACK_IMPORTED_MODULE_1__dropdown__["c" /* NgbDropdownToggle */], __WEBPACK_IMPORTED_MODULE_1__dropdown__["b" /* NgbDropdownMenu */]];
 var NgbDropdownModule = (function () {
     function NgbDropdownModule() {
     }
@@ -3002,6 +3025,8 @@ NgbDropdownModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* unused harmony export NgbRootModule */
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__accordion_accordion_module__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/accordion/accordion.module.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__alert_alert_module__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/alert/alert.module.js");
@@ -3081,8 +3106,6 @@ NgbDropdownModule.ctorParameters = function () { return []; };
 /* unused harmony reexport NgbTypeaheadModule */
 /* unused harmony reexport NgbTypeaheadConfig */
 /* unused harmony reexport NgbTypeahead */
-/* unused harmony export NgbRootModule */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbModule; });
 
 
 
@@ -3161,8 +3184,8 @@ NgbModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbModalBackdrop; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 var NgbModalBackdrop = (function () {
     function NgbModalBackdrop() {
@@ -3197,12 +3220,8 @@ var ModalDismissReasons;
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_popup__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/popup.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbActiveModal; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbModalRef; });
-
-
 /**
  * A reference to an active (currently opened) modal. Instances of this class
  * can be injected into components passed as modal content.
@@ -3221,20 +3240,16 @@ var NgbActiveModal = (function () {
     return NgbActiveModal;
 }());
 
-NgbActiveModal.decorators = [
-    { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"] },
-];
-/** @nocollapse */
-NgbActiveModal.ctorParameters = function () { return []; };
 /**
  * A reference to a newly opened modal.
  */
 var NgbModalRef = (function () {
-    function NgbModalRef(_windowCmptRef, _contentRef, _backdropCmptRef) {
+    function NgbModalRef(_windowCmptRef, _contentRef, _backdropCmptRef, _beforeDismiss) {
         var _this = this;
         this._windowCmptRef = _windowCmptRef;
         this._contentRef = _contentRef;
         this._backdropCmptRef = _backdropCmptRef;
+        this._beforeDismiss = _beforeDismiss;
         _windowCmptRef.instance.dismissEvent.subscribe(function (reason) { _this.dismiss(reason); });
         this.result = new Promise(function (resolve, reject) {
             _this._resolve = resolve;
@@ -3271,8 +3286,10 @@ var NgbModalRef = (function () {
      */
     NgbModalRef.prototype.dismiss = function (reason) {
         if (this._windowCmptRef) {
-            this._reject(reason);
-            this._removeModalElements();
+            if (!this._beforeDismiss || this._beforeDismiss() !== false) {
+                this._reject(reason);
+                this._removeModalElements();
+            }
         }
     };
     NgbModalRef.prototype._removeModalElements = function () {
@@ -3294,15 +3311,6 @@ var NgbModalRef = (function () {
     return NgbModalRef;
 }());
 
-NgbModalRef.decorators = [
-    { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"] },
-];
-/** @nocollapse */
-NgbModalRef.ctorParameters = function () { return [
-    { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ComponentRef"], },
-    { type: __WEBPACK_IMPORTED_MODULE_1__util_popup__["b" /* ContentRef */], },
-    { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ComponentRef"], },
-]; };
 //# sourceMappingURL=modal-ref.js.map
 
 /***/ }),
@@ -3311,13 +3319,13 @@ NgbModalRef.ctorParameters = function () { return [
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbModalStack; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_popup__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/popup.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__modal_backdrop__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/modal/modal-backdrop.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__modal_window__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/modal/modal-window.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__modal_ref__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/modal/modal-ref.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbModalStack; });
 
 
 
@@ -3351,7 +3359,7 @@ var NgbModalStack = (function () {
         windowCmptRef = this._windowFactory.create(this._injector, contentRef.nodes);
         this._applicationRef.attachView(windowCmptRef.hostView);
         containerEl.appendChild(windowCmptRef.location.nativeElement);
-        ngbModalRef = new __WEBPACK_IMPORTED_MODULE_5__modal_ref__["b" /* NgbModalRef */](windowCmptRef, contentRef, backdropCmptRef);
+        ngbModalRef = new __WEBPACK_IMPORTED_MODULE_5__modal_ref__["b" /* NgbModalRef */](windowCmptRef, contentRef, backdropCmptRef, options.beforeDismiss);
         activeModal.close = function (result) { ngbModalRef.close(result); };
         activeModal.dismiss = function (reason) { ngbModalRef.dismiss(reason); };
         this._applyWindowOptions(windowCmptRef.instance, options);
@@ -3359,29 +3367,29 @@ var NgbModalStack = (function () {
     };
     NgbModalStack.prototype._applyWindowOptions = function (windowInstance, options) {
         ['backdrop', 'keyboard', 'size', 'windowClass'].forEach(function (optionName) {
-            if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["c" /* isDefined */])(options[optionName])) {
+            if (Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["b" /* isDefined */])(options[optionName])) {
                 windowInstance[optionName] = options[optionName];
             }
         });
     };
     NgbModalStack.prototype._getContentRef = function (moduleCFR, contentInjector, content, context) {
         if (!content) {
-            return new __WEBPACK_IMPORTED_MODULE_1__util_popup__["b" /* ContentRef */]([]);
+            return new __WEBPACK_IMPORTED_MODULE_1__util_popup__["a" /* ContentRef */]([]);
         }
         else if (content instanceof __WEBPACK_IMPORTED_MODULE_0__angular_core__["TemplateRef"]) {
             var viewRef = content.createEmbeddedView(context);
             this._applicationRef.attachView(viewRef);
-            return new __WEBPACK_IMPORTED_MODULE_1__util_popup__["b" /* ContentRef */]([viewRef.rootNodes], viewRef);
+            return new __WEBPACK_IMPORTED_MODULE_1__util_popup__["a" /* ContentRef */]([viewRef.rootNodes], viewRef);
         }
-        else if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["h" /* isString */])(content)) {
-            return new __WEBPACK_IMPORTED_MODULE_1__util_popup__["b" /* ContentRef */]([[document.createTextNode("" + content)]]);
+        else if (Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["e" /* isString */])(content)) {
+            return new __WEBPACK_IMPORTED_MODULE_1__util_popup__["a" /* ContentRef */]([[document.createTextNode("" + content)]]);
         }
         else {
             var contentCmptFactory = moduleCFR.resolveComponentFactory(content);
             var modalContentInjector = __WEBPACK_IMPORTED_MODULE_0__angular_core__["ReflectiveInjector"].resolveAndCreate([{ provide: __WEBPACK_IMPORTED_MODULE_5__modal_ref__["a" /* NgbActiveModal */], useValue: context }], contentInjector);
             var componentRef = contentCmptFactory.create(modalContentInjector);
             this._applicationRef.attachView(componentRef.hostView);
-            return new __WEBPACK_IMPORTED_MODULE_1__util_popup__["b" /* ContentRef */]([[componentRef.location.nativeElement]], componentRef.hostView, componentRef);
+            return new __WEBPACK_IMPORTED_MODULE_1__util_popup__["a" /* ContentRef */]([[componentRef.location.nativeElement]], componentRef.hostView, componentRef);
         }
     };
     return NgbModalStack;
@@ -3404,9 +3412,9 @@ NgbModalStack.ctorParameters = function () { return [
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbModalWindow; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__modal_dismiss_reasons__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/modal/modal-dismiss-reasons.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbModalWindow; });
 
 
 var NgbModalWindow = (function () {
@@ -3488,9 +3496,9 @@ NgbModalWindow.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbModal; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__modal_stack__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/modal/modal-stack.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbModal; });
 
 
 /**
@@ -3533,6 +3541,7 @@ NgbModal.ctorParameters = function () { return [
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbModalModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__modal_backdrop__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/modal/modal-backdrop.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__modal_window__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/modal/modal-window.js");
@@ -3544,7 +3553,6 @@ NgbModal.ctorParameters = function () { return [
 /* unused harmony reexport NgbActiveModal */
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__modal_dismiss_reasons__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/modal/modal-dismiss-reasons.js");
 /* unused harmony reexport ModalDismissReasons */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbModalModule; });
 
 
 
@@ -3577,8 +3585,8 @@ NgbModalModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbPaginationConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbPagination component.
@@ -3611,10 +3619,10 @@ NgbPaginationConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbPagination; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__pagination_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/pagination/pagination-config.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbPagination; });
 
 
 
@@ -3709,14 +3717,14 @@ var NgbPagination = (function () {
     };
     NgbPagination.prototype._setPageInRange = function (newPageNo) {
         var prevPageNo = this.page;
-        this.page = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_util__["g" /* getValueInRange */])(newPageNo, this.pageCount, 1);
+        this.page = Object(__WEBPACK_IMPORTED_MODULE_1__util_util__["a" /* getValueInRange */])(newPageNo, this.pageCount, 1);
         if (this.page !== prevPageNo) {
             this.pageChange.emit(this.page);
         }
     };
     NgbPagination.prototype._updatePages = function (newPage) {
         this.pageCount = Math.ceil(this.collectionSize / this.pageSize);
-        if (!__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_util__["d" /* isNumber */])(this.pageCount)) {
+        if (!Object(__WEBPACK_IMPORTED_MODULE_1__util_util__["d" /* isNumber */])(this.pageCount)) {
             this.pageCount = 0;
         }
         // fill-in model needed to render pages
@@ -3779,13 +3787,13 @@ NgbPagination.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbPaginationModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__pagination__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/pagination/pagination.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__pagination_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/pagination/pagination-config.js");
 /* unused harmony reexport NgbPagination */
 /* unused harmony reexport NgbPaginationConfig */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbPaginationModule; });
 
 
 
@@ -3812,8 +3820,8 @@ NgbPaginationModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbPopoverConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbPopover directive.
@@ -3841,13 +3849,13 @@ NgbPopoverConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbPopoverWindow; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbPopover; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_triggers__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/triggers.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_positioning__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/positioning.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__util_popup__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/popup.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__popover_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/popover/popover-config.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbPopoverWindow; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbPopover; });
 
 
 
@@ -3855,9 +3863,21 @@ NgbPopoverConfig.ctorParameters = function () { return []; };
 
 var nextId = 0;
 var NgbPopoverWindow = (function () {
-    function NgbPopoverWindow() {
+    function NgbPopoverWindow(_element, _renderer) {
+        this._element = _element;
+        this._renderer = _renderer;
         this.placement = 'top';
     }
+    NgbPopoverWindow.prototype.applyPlacement = function (_placement) {
+        // remove the current placement classes
+        this._renderer.removeClass(this._element.nativeElement, 'bs-popover-' + this.placement.toString().split('-')[0]);
+        this._renderer.removeClass(this._element.nativeElement, 'bs-popover-' + this.placement.toString());
+        // set the new placement classes
+        this.placement = _placement;
+        // apply the new placement
+        this._renderer.addClass(this._element.nativeElement, 'bs-popover-' + this.placement.toString().split('-')[0]);
+        this._renderer.addClass(this._element.nativeElement, 'bs-popover-' + this.placement.toString());
+    };
     return NgbPopoverWindow;
 }());
 
@@ -3865,13 +3885,20 @@ NgbPopoverWindow.decorators = [
     { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"], args: [{
                 selector: 'ngb-popover-window',
                 changeDetection: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ChangeDetectionStrategy"].OnPush,
-                host: { '[class]': '"popover bs-popover-" + placement', 'role': 'tooltip', '[id]': 'id' },
+                host: {
+                    '[class]': '"popover bs-popover-" + placement.split("-")[0]+" bs-popover-" + placement',
+                    'role': 'tooltip',
+                    '[id]': 'id'
+                },
                 template: "\n    <div class=\"arrow\"></div>\n    <h3 class=\"popover-header\">{{title}}</h3><div class=\"popover-body\"><ng-content></ng-content></div>",
-                styles: ["\n    :host.bs-popover-top .arrow, :host.bs-popover-bottom .arrow {\n      left: 50%;\n    }\n\n    :host.bs-popover-left .arrow, :host.bs-popover-right .arrow {\n      top: 50%;\n    }\n  "]
+                styles: ["\n    :host.bs-popover-top .arrow, :host.bs-popover-bottom .arrow {\n      left: 50%;\n    }\n\n    :host.bs-popover-top-left .arrow, :host.bs-popover-bottom-left .arrow {\n      left: 2em;\n    }\n\n    :host.bs-popover-top-right .arrow, :host.bs-popover-bottom-right .arrow {\n      left: auto;\n      right: 2em;\n    }\n\n    :host.bs-popover-left .arrow, :host.bs-popover-right .arrow {\n      top: 50%;\n    }\n    \n    :host.bs-popover-left-top .arrow, :host.bs-popover-right-top .arrow {\n      top: 0.7em;\n    }\n\n    :host.bs-popover-left-bottom .arrow, :host.bs-popover-right-bottom .arrow {\n      top: auto;\n      bottom: 0.7em;\n    }\n  "]
             },] },
 ];
 /** @nocollapse */
-NgbPopoverWindow.ctorParameters = function () { return []; };
+NgbPopoverWindow.ctorParameters = function () { return [
+    { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ElementRef"], },
+    { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Renderer2"], },
+]; };
 NgbPopoverWindow.propDecorators = {
     'placement': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'title': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
@@ -3897,10 +3924,10 @@ var NgbPopover = (function () {
         this.placement = config.placement;
         this.triggers = config.triggers;
         this.container = config.container;
-        this._popupService = new __WEBPACK_IMPORTED_MODULE_3__util_popup__["a" /* PopupService */](NgbPopoverWindow, injector, viewContainerRef, _renderer, componentFactoryResolver);
+        this._popupService = new __WEBPACK_IMPORTED_MODULE_3__util_popup__["b" /* PopupService */](NgbPopoverWindow, injector, viewContainerRef, _renderer, componentFactoryResolver);
         this._zoneSubscription = ngZone.onStable.subscribe(function () {
             if (_this._windowRef) {
-                __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_positioning__["a" /* positionElements */])(_this._elementRef.nativeElement, _this._windowRef.location.nativeElement, _this.placement, _this.container === 'body');
+                _this._windowRef.instance.applyPlacement(Object(__WEBPACK_IMPORTED_MODULE_2__util_positioning__["a" /* positionElements */])(_this._elementRef.nativeElement, _this._windowRef.location.nativeElement, _this.placement, _this.container === 'body'));
             }
         });
     }
@@ -3911,18 +3938,17 @@ var NgbPopover = (function () {
     NgbPopover.prototype.open = function (context) {
         if (!this._windowRef) {
             this._windowRef = this._popupService.open(this.ngbPopover, context);
-            this._windowRef.instance.placement = this.placement;
             this._windowRef.instance.title = this.popoverTitle;
             this._windowRef.instance.id = this._ngbPopoverWindowId;
             this._renderer.setAttribute(this._elementRef.nativeElement, 'aria-describedby', this._ngbPopoverWindowId);
             if (this.container === 'body') {
                 window.document.querySelector(this.container).appendChild(this._windowRef.location.nativeElement);
             }
-            // position popover along the element
-            __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_positioning__["a" /* positionElements */])(this._elementRef.nativeElement, this._windowRef.location.nativeElement, this.placement, this.container === 'body');
-            // we need to manually invoke change detection since events registered via
-            // Renderer::listen() are not picked up by change detection with the OnPush strategy
+            // apply styling to set basic css-classes on target element, before going for positioning
+            this._windowRef.changeDetectorRef.detectChanges();
             this._windowRef.changeDetectorRef.markForCheck();
+            // position popover along the element
+            this._windowRef.instance.applyPlacement(Object(__WEBPACK_IMPORTED_MODULE_2__util_positioning__["a" /* positionElements */])(this._elementRef.nativeElement, this._windowRef.location.nativeElement, this.placement, this.container === 'body'));
             this.shown.emit();
         }
     };
@@ -3953,7 +3979,7 @@ var NgbPopover = (function () {
      */
     NgbPopover.prototype.isOpen = function () { return this._windowRef != null; };
     NgbPopover.prototype.ngOnInit = function () {
-        this._unregisterListenersFn = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_triggers__["a" /* listenToTriggers */])(this._renderer, this._elementRef.nativeElement, this.triggers, this.open.bind(this), this.close.bind(this), this.toggle.bind(this));
+        this._unregisterListenersFn = Object(__WEBPACK_IMPORTED_MODULE_1__util_triggers__["a" /* listenToTriggers */])(this._renderer, this._elementRef.nativeElement, this.triggers, this.open.bind(this), this.close.bind(this), this.toggle.bind(this));
     };
     NgbPopover.prototype.ngOnDestroy = function () {
         this.close();
@@ -3993,12 +4019,12 @@ NgbPopover.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbPopoverModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__popover__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/popover/popover.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__popover_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/popover/popover-config.js");
 /* unused harmony reexport NgbPopover */
 /* unused harmony reexport NgbPopoverConfig */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbPopoverModule; });
 
 
 
@@ -4024,8 +4050,8 @@ NgbPopoverModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbProgressbarConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbProgressbar component.
@@ -4055,10 +4081,10 @@ NgbProgressbarConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbProgressbar; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__progressbar_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/progressbar/progressbar-config.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbProgressbar; });
 
 
 
@@ -4077,7 +4103,7 @@ var NgbProgressbar = (function () {
         this.type = config.type;
         this.showValue = config.showValue;
     }
-    NgbProgressbar.prototype.getValue = function () { return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_util__["g" /* getValueInRange */])(this.value, this.max); };
+    NgbProgressbar.prototype.getValue = function () { return Object(__WEBPACK_IMPORTED_MODULE_1__util_util__["a" /* getValueInRange */])(this.value, this.max); };
     NgbProgressbar.prototype.getPercentValue = function () { return 100 * this.getValue() / this.max; };
     return NgbProgressbar;
 }());
@@ -4109,13 +4135,13 @@ NgbProgressbar.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbProgressbarModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__progressbar__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/progressbar/progressbar.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__progressbar_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/progressbar/progressbar-config.js");
 /* unused harmony reexport NgbProgressbar */
 /* unused harmony reexport NgbProgressbarConfig */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbProgressbarModule; });
 
 
 
@@ -4142,8 +4168,8 @@ NgbProgressbarModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbRatingConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbRating component.
@@ -4172,11 +4198,11 @@ NgbRatingConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbRating; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__rating_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/rating/rating-config.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_forms__ = __webpack_require__("../../../forms/@angular/forms.es5.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbRating; });
 
 
 
@@ -4191,8 +4217,8 @@ var Key;
     Key[Key["ArrowDown"] = 40] = "ArrowDown";
 })(Key || (Key = {}));
 var NGB_RATING_VALUE_ACCESSOR = {
-    provide: __WEBPACK_IMPORTED_MODULE_3__angular_forms__["b" /* NG_VALUE_ACCESSOR */],
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbRating; }),
+    provide: __WEBPACK_IMPORTED_MODULE_3__angular_forms__["c" /* NG_VALUE_ACCESSOR */],
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbRating; }),
     multi: true
 };
 /**
@@ -4233,7 +4259,7 @@ var NgbRating = (function () {
     NgbRating.prototype.handleBlur = function () { this.onTouched(); };
     NgbRating.prototype.handleClick = function (value) { this.update(this.resettable && this.rate === value ? 0 : value); };
     NgbRating.prototype.handleKeyDown = function (event) {
-        if (Key[__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["a" /* toString */])(event.which)]) {
+        if (Key[Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["i" /* toString */])(event.which)]) {
             event.preventDefault();
             switch (event.which) {
                 case Key.ArrowDown:
@@ -4271,7 +4297,7 @@ var NgbRating = (function () {
     NgbRating.prototype.setDisabledState = function (isDisabled) { this.disabled = isDisabled; };
     NgbRating.prototype.update = function (value, internalChange) {
         if (internalChange === void 0) { internalChange = true; }
-        var newRate = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["g" /* getValueInRange */])(value, this.max, 0);
+        var newRate = Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["a" /* getValueInRange */])(value, this.max, 0);
         if (!this.readonly && !this.disabled && this.rate !== newRate) {
             this.rate = newRate;
             this.rateChange.emit(this.rate);
@@ -4321,7 +4347,7 @@ NgbRating.decorators = [
                     '(keydown)': 'handleKeyDown($event)',
                     '(mouseleave)': 'reset()'
                 },
-                template: "\n    <ng-template #t let-fill=\"fill\">{{ fill === 100 ? '&#9733;' : '&#9734;' }}</ng-template>\n    <ng-template ngFor [ngForOf]=\"contexts\" let-index=\"index\">\n      <span class=\"sr-only\">({{ index < nextRate ? '*' : ' ' }})</span>\n      <span (mouseenter)=\"enter(index + 1)\" (click)=\"handleClick(index + 1)\" [style.cursor]=\"readonly || disabled ? 'default' : 'pointer'\">\n        <ng-template [ngTemplateOutlet]=\"starTemplate || t\" [ngOutletContext]=\"contexts[index]\"></ng-template>\n      </span>\n    </ng-template>\n  ",
+                template: "\n    <ng-template #t let-fill=\"fill\">{{ fill === 100 ? '&#9733;' : '&#9734;' }}</ng-template>\n    <ng-template ngFor [ngForOf]=\"contexts\" let-index=\"index\">\n      <span class=\"sr-only\">({{ index < nextRate ? '*' : ' ' }})</span>\n      <span (mouseenter)=\"enter(index + 1)\" (click)=\"handleClick(index + 1)\" [style.cursor]=\"readonly || disabled ? 'default' : 'pointer'\">\n        <ng-template [ngTemplateOutlet]=\"starTemplate || t\" [ngTemplateOutletContext]=\"contexts[index]\"></ng-template>\n      </span>\n    </ng-template>\n  ",
                 providers: [NGB_RATING_VALUE_ACCESSOR]
             },] },
 ];
@@ -4348,13 +4374,13 @@ NgbRating.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbRatingModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__rating_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/rating/rating-config.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__rating__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/rating/rating.js");
 /* unused harmony reexport NgbRating */
 /* unused harmony reexport NgbRatingConfig */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbRatingModule; });
 
 
 
@@ -4381,8 +4407,8 @@ NgbRatingModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTabsetConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbTabset component.
@@ -4392,6 +4418,7 @@ NgbRatingModule.ctorParameters = function () { return []; };
 var NgbTabsetConfig = (function () {
     function NgbTabsetConfig() {
         this.justify = 'start';
+        this.orientation = 'horizontal';
         this.type = 'tabs';
     }
     return NgbTabsetConfig;
@@ -4410,12 +4437,12 @@ NgbTabsetConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return NgbTabTitle; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbTabContent; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTab; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return NgbTabset; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__tabset_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/tabset/tabset-config.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return NgbTabTitle; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return NgbTabContent; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbTab; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTabset; });
 
 
 var nextId = 0;
@@ -4497,7 +4524,25 @@ var NgbTabset = (function () {
         this.tabChange = new __WEBPACK_IMPORTED_MODULE_0__angular_core__["EventEmitter"]();
         this.type = config.type;
         this.justify = config.justify;
+        this.orientation = config.orientation;
     }
+    Object.defineProperty(NgbTabset.prototype, "justify", {
+        /**
+         * The horizontal alignment of the nav with flexbox utilities. Can be one of 'start', 'center', 'end', 'fill' or
+         * 'justified'
+         * The default value is 'start'.
+         */
+        set: function (className) {
+            if (className === 'fill' || className === 'justified') {
+                this.justifyClass = "nav-" + className;
+            }
+            else {
+                this.justifyClass = "justify-content-" + className;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
     /**
      * Selects the tab with the given id and shows its associated pane.
      * Any other tab that was previously selected becomes unselected and its associated pane is hidden.
@@ -4528,7 +4573,7 @@ NgbTabset.decorators = [
     { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"], args: [{
                 selector: 'ngb-tabset',
                 exportAs: 'ngbTabset',
-                template: "\n    <ul [class]=\"'nav nav-' + type + ' justify-content-' + justify\" role=\"tablist\">\n      <li class=\"nav-item\" *ngFor=\"let tab of tabs\">\n        <a [id]=\"tab.id\" class=\"nav-link\" [class.active]=\"tab.id === activeId\" [class.disabled]=\"tab.disabled\"\n          href (click)=\"!!select(tab.id)\" role=\"tab\" [attr.tabindex]=\"(tab.disabled ? '-1': undefined)\"\n          [attr.aria-controls]=\"(!destroyOnHide || tab.id === activeId ? tab.id + '-panel' : null)\"\n          [attr.aria-expanded]=\"tab.id === activeId\" [attr.aria-disabled]=\"tab.disabled\">\n          {{tab.title}}<ng-template [ngTemplateOutlet]=\"tab.titleTpl?.templateRef\"></ng-template>\n        </a>\n      </li>\n    </ul>\n    <div class=\"tab-content\">\n      <ng-template ngFor let-tab [ngForOf]=\"tabs\">\n        <div\n          class=\"tab-pane {{tab.id === activeId ? 'active' : null}}\"\n          *ngIf=\"!destroyOnHide || tab.id === activeId\"\n          role=\"tabpanel\"\n          [attr.aria-labelledby]=\"tab.id\" id=\"{{tab.id}}-panel\"\n          [attr.aria-expanded]=\"tab.id === activeId\">\n          <ng-template [ngTemplateOutlet]=\"tab.contentTpl.templateRef\"></ng-template>\n        </div>\n      </ng-template>\n    </div>\n  "
+                template: "\n    <ul [class]=\"'nav nav-' + type + (orientation == 'horizontal'?  ' ' + justifyClass : ' flex-column')\" role=\"tablist\">\n      <li class=\"nav-item\" *ngFor=\"let tab of tabs\">\n        <a [id]=\"tab.id\" class=\"nav-link\" [class.active]=\"tab.id === activeId\" [class.disabled]=\"tab.disabled\"\n          href (click)=\"!!select(tab.id)\" role=\"tab\" [attr.tabindex]=\"(tab.disabled ? '-1': undefined)\"\n          [attr.aria-controls]=\"(!destroyOnHide || tab.id === activeId ? tab.id + '-panel' : null)\"\n          [attr.aria-expanded]=\"tab.id === activeId\" [attr.aria-disabled]=\"tab.disabled\">\n          {{tab.title}}<ng-template [ngTemplateOutlet]=\"tab.titleTpl?.templateRef\"></ng-template>\n        </a>\n      </li>\n    </ul>\n    <div class=\"tab-content\">\n      <ng-template ngFor let-tab [ngForOf]=\"tabs\">\n        <div\n          class=\"tab-pane {{tab.id === activeId ? 'active' : null}}\"\n          *ngIf=\"!destroyOnHide || tab.id === activeId\"\n          role=\"tabpanel\"\n          [attr.aria-labelledby]=\"tab.id\" id=\"{{tab.id}}-panel\"\n          [attr.aria-expanded]=\"tab.id === activeId\">\n          <ng-template [ngTemplateOutlet]=\"tab.contentTpl.templateRef\"></ng-template>\n        </div>\n      </ng-template>\n    </div>\n  "
             },] },
 ];
 /** @nocollapse */
@@ -4540,6 +4585,7 @@ NgbTabset.propDecorators = {
     'activeId': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'destroyOnHide': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'justify': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
+    'orientation': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'type': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'tabChange': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Output"] },],
 };
@@ -4551,6 +4597,7 @@ NgbTabset.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTabsetModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__tabset__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/tabset/tabset.js");
@@ -4560,14 +4607,13 @@ NgbTabset.propDecorators = {
 /* unused harmony reexport NgbTabContent */
 /* unused harmony reexport NgbTabTitle */
 /* unused harmony reexport NgbTabsetConfig */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTabsetModule; });
 
 
 
 
 
 
-var NGB_TABSET_DIRECTIVES = [__WEBPACK_IMPORTED_MODULE_2__tabset__["a" /* NgbTabset */], __WEBPACK_IMPORTED_MODULE_2__tabset__["b" /* NgbTab */], __WEBPACK_IMPORTED_MODULE_2__tabset__["c" /* NgbTabContent */], __WEBPACK_IMPORTED_MODULE_2__tabset__["d" /* NgbTabTitle */]];
+var NGB_TABSET_DIRECTIVES = [__WEBPACK_IMPORTED_MODULE_2__tabset__["d" /* NgbTabset */], __WEBPACK_IMPORTED_MODULE_2__tabset__["a" /* NgbTab */], __WEBPACK_IMPORTED_MODULE_2__tabset__["b" /* NgbTabContent */], __WEBPACK_IMPORTED_MODULE_2__tabset__["c" /* NgbTabTitle */]];
 var NgbTabsetModule = (function () {
     function NgbTabsetModule() {
     }
@@ -4588,21 +4634,21 @@ NgbTabsetModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTime; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
 
 var NgbTime = (function () {
     function NgbTime(hour, minute, second) {
-        this.hour = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* toInteger */])(hour);
-        this.minute = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* toInteger */])(minute);
-        this.second = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* toInteger */])(second);
+        this.hour = Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* toInteger */])(hour);
+        this.minute = Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* toInteger */])(minute);
+        this.second = Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* toInteger */])(second);
     }
     NgbTime.prototype.changeHour = function (step) {
         if (step === void 0) { step = 1; }
         this.updateHour((isNaN(this.hour) ? 0 : this.hour) + step);
     };
     NgbTime.prototype.updateHour = function (hour) {
-        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(hour)) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(hour)) {
             this.hour = (hour < 0 ? 24 + hour : hour) % 24;
         }
         else {
@@ -4614,7 +4660,7 @@ var NgbTime = (function () {
         this.updateMinute((isNaN(this.minute) ? 0 : this.minute) + step);
     };
     NgbTime.prototype.updateMinute = function (minute) {
-        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(minute)) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(minute)) {
             this.minute = minute % 60 < 0 ? 60 + minute % 60 : minute % 60;
             this.changeHour(Math.floor(minute / 60));
         }
@@ -4627,7 +4673,7 @@ var NgbTime = (function () {
         this.updateSecond((isNaN(this.second) ? 0 : this.second) + step);
     };
     NgbTime.prototype.updateSecond = function (second) {
-        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(second)) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(second)) {
             this.second = second < 0 ? 60 + second % 60 : second % 60;
             this.changeMinute(Math.floor(second / 60));
         }
@@ -4637,7 +4683,7 @@ var NgbTime = (function () {
     };
     NgbTime.prototype.isValid = function (checkSecs) {
         if (checkSecs === void 0) { checkSecs = true; }
-        return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(this.hour) && __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(this.minute) && (checkSecs ? __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(this.second) : true);
+        return Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(this.hour) && Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(this.minute) && (checkSecs ? Object(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* isNumber */])(this.second) : true);
     };
     NgbTime.prototype.toString = function () { return (this.hour || 0) + ":" + (this.minute || 0) + ":" + (this.second || 0); };
     return NgbTime;
@@ -4651,8 +4697,8 @@ var NgbTime = (function () {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTimepickerConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbTimepicker component.
@@ -4687,20 +4733,20 @@ NgbTimepickerConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTimepicker; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_forms__ = __webpack_require__("../../../forms/@angular/forms.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__ngb_time__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/timepicker/ngb-time.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__timepicker_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/timepicker/timepicker-config.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTimepicker; });
 
 
 
 
 
 var NGB_TIMEPICKER_VALUE_ACCESSOR = {
-    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["b" /* NG_VALUE_ACCESSOR */],
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbTimepicker; }),
+    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["c" /* NG_VALUE_ACCESSOR */],
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbTimepicker; }),
     multi: true
 };
 /**
@@ -4722,7 +4768,7 @@ var NgbTimepicker = (function () {
     }
     NgbTimepicker.prototype.writeValue = function (value) {
         this.model = value ? new __WEBPACK_IMPORTED_MODULE_3__ngb_time__["a" /* NgbTime */](value.hour, value.minute, value.second) : new __WEBPACK_IMPORTED_MODULE_3__ngb_time__["a" /* NgbTime */]();
-        if (!this.seconds && (!value || !__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(value.second))) {
+        if (!this.seconds && (!value || !Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(value.second))) {
             this.model.second = 0;
         }
     };
@@ -4743,7 +4789,7 @@ var NgbTimepicker = (function () {
     };
     NgbTimepicker.prototype.updateHour = function (newVal) {
         var isPM = this.model.hour >= 12;
-        var enteredHour = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["e" /* toInteger */])(newVal);
+        var enteredHour = Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["h" /* toInteger */])(newVal);
         if (this.meridian && (isPM && enteredHour < 12 || !isPM && enteredHour === 12)) {
             this.model.updateHour(enteredHour + 12);
         }
@@ -4753,11 +4799,11 @@ var NgbTimepicker = (function () {
         this.propagateModelChange();
     };
     NgbTimepicker.prototype.updateMinute = function (newVal) {
-        this.model.updateMinute(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["e" /* toInteger */])(newVal));
+        this.model.updateMinute(Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["h" /* toInteger */])(newVal));
         this.propagateModelChange();
     };
     NgbTimepicker.prototype.updateSecond = function (newVal) {
-        this.model.updateSecond(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["e" /* toInteger */])(newVal));
+        this.model.updateSecond(Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["h" /* toInteger */])(newVal));
         this.propagateModelChange();
     };
     NgbTimepicker.prototype.toggleMeridian = function () {
@@ -4766,23 +4812,23 @@ var NgbTimepicker = (function () {
         }
     };
     NgbTimepicker.prototype.formatHour = function (value) {
-        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(value)) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(value)) {
             if (this.meridian) {
-                return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["f" /* padNumber */])(value % 12 === 0 ? 12 : value % 12);
+                return Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["f" /* padNumber */])(value % 12 === 0 ? 12 : value % 12);
             }
             else {
-                return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["f" /* padNumber */])(value % 24);
+                return Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["f" /* padNumber */])(value % 24);
             }
         }
         else {
-            return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["f" /* padNumber */])(NaN);
+            return Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["f" /* padNumber */])(NaN);
         }
     };
-    NgbTimepicker.prototype.formatMinSec = function (value) { return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["f" /* padNumber */])(value); };
+    NgbTimepicker.prototype.formatMinSec = function (value) { return Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["f" /* padNumber */])(value); };
     NgbTimepicker.prototype.setFormControlSize = function () { return { 'form-control-sm': this.size === 'small', 'form-control-lg': this.size === 'large' }; };
     NgbTimepicker.prototype.setButtonSize = function () { return { 'btn-sm': this.size === 'small', 'btn-lg': this.size === 'large' }; };
     NgbTimepicker.prototype.ngOnChanges = function (changes) {
-        if (changes['seconds'] && !this.seconds && this.model && !__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(this.model.second)) {
+        if (changes['seconds'] && !this.seconds && this.model && !Object(__WEBPACK_IMPORTED_MODULE_2__util_util__["d" /* isNumber */])(this.model.second)) {
             this.model.second = 0;
             this.propagateModelChange(false);
         }
@@ -4832,13 +4878,13 @@ NgbTimepicker.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTimepickerModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__timepicker__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/timepicker/timepicker.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__timepicker_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/timepicker/timepicker-config.js");
 /* unused harmony reexport NgbTimepicker */
 /* unused harmony reexport NgbTimepickerConfig */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTimepickerModule; });
 
 
 
@@ -4865,8 +4911,8 @@ NgbTimepickerModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTooltipConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbTooltip directive.
@@ -4894,13 +4940,13 @@ NgbTooltipConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbTooltipWindow; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTooltip; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_triggers__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/triggers.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_positioning__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/positioning.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__util_popup__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/popup.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__tooltip_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/tooltip/tooltip-config.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NgbTooltipWindow; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTooltip; });
 
 
 
@@ -4908,9 +4954,21 @@ NgbTooltipConfig.ctorParameters = function () { return []; };
 
 var nextId = 0;
 var NgbTooltipWindow = (function () {
-    function NgbTooltipWindow() {
+    function NgbTooltipWindow(_element, _renderer) {
+        this._element = _element;
+        this._renderer = _renderer;
         this.placement = 'top';
     }
+    NgbTooltipWindow.prototype.applyPlacement = function (_placement) {
+        // remove the current placement classes
+        this._renderer.removeClass(this._element.nativeElement, 'bs-tooltip-' + this.placement.toString().split('-')[0]);
+        this._renderer.removeClass(this._element.nativeElement, 'bs-tooltip-' + this.placement.toString());
+        // set the new placement classes
+        this.placement = _placement;
+        // apply the new placement
+        this._renderer.addClass(this._element.nativeElement, 'bs-tooltip-' + this.placement.toString().split('-')[0]);
+        this._renderer.addClass(this._element.nativeElement, 'bs-tooltip-' + this.placement.toString());
+    };
     return NgbTooltipWindow;
 }());
 
@@ -4918,13 +4976,20 @@ NgbTooltipWindow.decorators = [
     { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"], args: [{
                 selector: 'ngb-tooltip-window',
                 changeDetection: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ChangeDetectionStrategy"].OnPush,
-                host: { '[class]': '"tooltip show bs-tooltip-" + placement', 'role': 'tooltip', '[id]': 'id' },
+                host: {
+                    '[class]': '"tooltip show bs-tooltip-" + placement.split("-")[0]+" bs-tooltip-" + placement',
+                    'role': 'tooltip',
+                    '[id]': 'id'
+                },
                 template: "<div class=\"arrow\"></div><div class=\"tooltip-inner\"><ng-content></ng-content></div>",
-                styles: ["\n    :host.bs-tooltip-top .arrow, :host.bs-tooltip-bottom .arrow {\n      left: 50%;\n    }\n\n    :host.bs-tooltip-left .arrow, :host.bs-tooltip-right .arrow {\n      top: 50%;\n    }\n  "]
+                styles: ["\n    :host.bs-tooltip-top .arrow, :host.bs-tooltip-bottom .arrow {\n      left: 50%;\n    }\n\n    :host.bs-tooltip-top-left .arrow, :host.bs-tooltip-bottom-left .arrow {\n      left: 1em;\n    }\n\n    :host.bs-tooltip-top-right .arrow, :host.bs-tooltip-bottom-right .arrow {\n      left: auto;\n      right: 1em;\n    }\n\n    :host.bs-tooltip-left .arrow, :host.bs-tooltip-right .arrow {\n      top: 50%;\n    }\n    \n    :host.bs-tooltip-left-top .arrow, :host.bs-tooltip-right-top .arrow {\n      top: 0.7em;\n    }\n\n    :host.bs-tooltip-left-bottom .arrow, :host.bs-tooltip-right-bottom .arrow {\n      top: auto;\n      bottom: 0.7em;\n    }\n  "]
             },] },
 ];
 /** @nocollapse */
-NgbTooltipWindow.ctorParameters = function () { return []; };
+NgbTooltipWindow.ctorParameters = function () { return [
+    { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ElementRef"], },
+    { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Renderer2"], },
+]; };
 NgbTooltipWindow.propDecorators = {
     'placement': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'id': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
@@ -4949,10 +5014,10 @@ var NgbTooltip = (function () {
         this.placement = config.placement;
         this.triggers = config.triggers;
         this.container = config.container;
-        this._popupService = new __WEBPACK_IMPORTED_MODULE_3__util_popup__["a" /* PopupService */](NgbTooltipWindow, injector, viewContainerRef, _renderer, componentFactoryResolver);
+        this._popupService = new __WEBPACK_IMPORTED_MODULE_3__util_popup__["b" /* PopupService */](NgbTooltipWindow, injector, viewContainerRef, _renderer, componentFactoryResolver);
         this._zoneSubscription = ngZone.onStable.subscribe(function () {
             if (_this._windowRef) {
-                __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_positioning__["a" /* positionElements */])(_this._elementRef.nativeElement, _this._windowRef.location.nativeElement, _this.placement, _this.container === 'body');
+                _this._windowRef.instance.applyPlacement(Object(__WEBPACK_IMPORTED_MODULE_2__util_positioning__["a" /* positionElements */])(_this._elementRef.nativeElement, _this._windowRef.location.nativeElement, _this.placement, _this.container === 'body'));
             }
         });
     }
@@ -4977,17 +5042,17 @@ var NgbTooltip = (function () {
     NgbTooltip.prototype.open = function (context) {
         if (!this._windowRef && this._ngbTooltip) {
             this._windowRef = this._popupService.open(this._ngbTooltip, context);
-            this._windowRef.instance.placement = this.placement;
             this._windowRef.instance.id = this._ngbTooltipWindowId;
             this._renderer.setAttribute(this._elementRef.nativeElement, 'aria-describedby', this._ngbTooltipWindowId);
             if (this.container === 'body') {
                 window.document.querySelector(this.container).appendChild(this._windowRef.location.nativeElement);
             }
-            // position tooltip along the element
-            __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_positioning__["a" /* positionElements */])(this._elementRef.nativeElement, this._windowRef.location.nativeElement, this.placement, this.container === 'body');
-            // we need to manually invoke change detection since events registered via
-            // Renderer::listen() - to be determined if this is a bug in the Angular itself
+            this._windowRef.instance.placement = Array.isArray(this.placement) ? this.placement[0] : this.placement;
+            // apply styling to set basic css-classes on target element, before going for positioning
+            this._windowRef.changeDetectorRef.detectChanges();
             this._windowRef.changeDetectorRef.markForCheck();
+            // position tooltip along the element
+            this._windowRef.instance.applyPlacement(Object(__WEBPACK_IMPORTED_MODULE_2__util_positioning__["a" /* positionElements */])(this._elementRef.nativeElement, this._windowRef.location.nativeElement, this.placement, this.container === 'body'));
             this.shown.emit();
         }
     };
@@ -5018,7 +5083,7 @@ var NgbTooltip = (function () {
      */
     NgbTooltip.prototype.isOpen = function () { return this._windowRef != null; };
     NgbTooltip.prototype.ngOnInit = function () {
-        this._unregisterListenersFn = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_triggers__["a" /* listenToTriggers */])(this._renderer, this._elementRef.nativeElement, this.triggers, this.open.bind(this), this.close.bind(this), this.toggle.bind(this));
+        this._unregisterListenersFn = Object(__WEBPACK_IMPORTED_MODULE_1__util_triggers__["a" /* listenToTriggers */])(this._renderer, this._elementRef.nativeElement, this.triggers, this.open.bind(this), this.close.bind(this), this.toggle.bind(this));
     };
     NgbTooltip.prototype.ngOnDestroy = function () {
         this.close();
@@ -5057,12 +5122,12 @@ NgbTooltip.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTooltipModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__tooltip__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/tooltip/tooltip.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__tooltip_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/tooltip/tooltip-config.js");
 /* unused harmony reexport NgbTooltipConfig */
 /* unused harmony reexport NgbTooltip */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTooltipModule; });
 
 
 
@@ -5088,9 +5153,9 @@ NgbTooltipModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbHighlight; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbHighlight; });
 
 
 var NgbHighlight = (function () {
@@ -5098,12 +5163,12 @@ var NgbHighlight = (function () {
         this.highlightClass = 'ngb-highlight';
     }
     NgbHighlight.prototype.ngOnChanges = function (changes) {
-        var resultStr = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_util__["a" /* toString */])(this.result);
+        var resultStr = Object(__WEBPACK_IMPORTED_MODULE_1__util_util__["i" /* toString */])(this.result);
         var resultLC = resultStr.toLowerCase();
-        var termLC = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_util__["a" /* toString */])(this.term).toLowerCase();
+        var termLC = Object(__WEBPACK_IMPORTED_MODULE_1__util_util__["i" /* toString */])(this.term).toLowerCase();
         var currentIdx = 0;
         if (termLC.length > 0) {
-            this.parts = resultLC.split(new RegExp("(" + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_util__["b" /* regExpEscape */])(termLC) + ")")).map(function (part) {
+            this.parts = resultLC.split(new RegExp("(" + Object(__WEBPACK_IMPORTED_MODULE_1__util_util__["g" /* regExpEscape */])(termLC) + ")")).map(function (part) {
                 var originalPart = resultStr.substr(currentIdx, part.length);
                 currentIdx += part.length;
                 return originalPart;
@@ -5141,8 +5206,8 @@ NgbHighlight.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTypeaheadConfig; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
  * Configuration service for the NgbTypeahead component.
@@ -5154,6 +5219,7 @@ var NgbTypeaheadConfig = (function () {
         this.editable = true;
         this.focusFirst = true;
         this.showHint = false;
+        this.placement = 'bottom-left';
     }
     return NgbTypeaheadConfig;
 }());
@@ -5171,9 +5237,9 @@ NgbTypeaheadConfig.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTypeaheadWindow; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTypeaheadWindow; });
 
 
 var NgbTypeaheadWindow = (function () {
@@ -5187,7 +5253,7 @@ var NgbTypeaheadWindow = (function () {
          * A function used to format a given result before display. This function should return a formatted string without any
          * HTML markup
          */
-        this.formatter = __WEBPACK_IMPORTED_MODULE_1__util_util__["a" /* toString */];
+        this.formatter = __WEBPACK_IMPORTED_MODULE_1__util_util__["i" /* toString */];
         /**
          * Event raised when user selects a particular result row
          */
@@ -5236,7 +5302,7 @@ NgbTypeaheadWindow.decorators = [
                 selector: 'ngb-typeahead-window',
                 exportAs: 'ngbTypeaheadWindow',
                 host: { 'class': 'dropdown-menu', 'style': 'display: block', 'role': 'listbox', '[id]': 'id' },
-                template: "\n    <ng-template #rt let-result=\"result\" let-term=\"term\" let-formatter=\"formatter\">\n      <ngb-highlight [result]=\"formatter(result)\" [term]=\"term\"></ngb-highlight>\n    </ng-template>\n    <ng-template ngFor [ngForOf]=\"results\" let-result let-idx=\"index\">\n      <button type=\"button\" class=\"dropdown-item\" role=\"option\"\n        [id]=\"id + '-' + idx\"\n        [class.active]=\"idx === activeIdx\"\n        (mouseenter)=\"markActive(idx)\"\n        (click)=\"select(result)\">\n          <ng-template [ngTemplateOutlet]=\"resultTemplate || rt\"\n          [ngOutletContext]=\"{result: result, term: term, formatter: formatter}\"></ng-template>\n      </button>\n    </ng-template>\n  "
+                template: "\n    <ng-template #rt let-result=\"result\" let-term=\"term\" let-formatter=\"formatter\">\n      <ngb-highlight [result]=\"formatter(result)\" [term]=\"term\"></ngb-highlight>\n    </ng-template>\n    <ng-template ngFor [ngForOf]=\"results\" let-result let-idx=\"index\">\n      <button type=\"button\" class=\"dropdown-item\" role=\"option\"\n        [id]=\"id + '-' + idx\"\n        [class.active]=\"idx === activeIdx\"\n        (mouseenter)=\"markActive(idx)\"\n        (click)=\"select(result)\">\n          <ng-template [ngTemplateOutlet]=\"resultTemplate || rt\"\n          [ngTemplateOutletContext]=\"{result: result, term: term, formatter: formatter}\"></ng-template>\n      </button>\n    </ng-template>\n  "
             },] },
 ];
 /** @nocollapse */
@@ -5259,6 +5325,7 @@ NgbTypeaheadWindow.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTypeahead; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_forms__ = __webpack_require__("../../../forms/@angular/forms.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_BehaviorSubject__ = __webpack_require__("../../../../rxjs/BehaviorSubject.js");
@@ -5276,7 +5343,6 @@ NgbTypeaheadWindow.propDecorators = {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__util_popup__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/popup.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__util_util__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/util/util.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__typeahead_config__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/typeahead/typeahead-config.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTypeahead; });
 
 
 
@@ -5298,8 +5364,8 @@ var Key;
     Key[Key["ArrowDown"] = 40] = "ArrowDown";
 })(Key || (Key = {}));
 var NGB_TYPEAHEAD_VALUE_ACCESSOR = {
-    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["b" /* NG_VALUE_ACCESSOR */],
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbTypeahead; }),
+    provide: __WEBPACK_IMPORTED_MODULE_1__angular_forms__["c" /* NG_VALUE_ACCESSOR */],
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["forwardRef"])(function () { return NgbTypeahead; }),
     multi: true
 };
 var nextWindowId = 0;
@@ -5313,6 +5379,12 @@ var NgbTypeahead = (function () {
         this._viewContainerRef = _viewContainerRef;
         this._renderer = _renderer;
         this._injector = _injector;
+        /** Placement of a typeahead accepts:
+         *    "top", "top-left", "top-right", "bottom", "bottom-left", "bottom-right",
+         *    "left", "left-top", "left-bottom", "right", "right-top", "right-bottom"
+         * and array of above values.
+        */
+        this.placement = 'bottom-left';
         /**
          * An event emitted when a match is selected. Event payload is of type NgbTypeaheadSelectItemEvent.
          */
@@ -5324,12 +5396,13 @@ var NgbTypeahead = (function () {
         this.editable = config.editable;
         this.focusFirst = config.focusFirst;
         this.showHint = config.showHint;
-        this._valueChanges = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_6_rxjs_observable_fromEvent__["fromEvent"])(_elementRef.nativeElement, 'input', function ($event) { return $event.target.value; });
+        this.placement = config.placement;
+        this._valueChanges = Object(__WEBPACK_IMPORTED_MODULE_6_rxjs_observable_fromEvent__["fromEvent"])(_elementRef.nativeElement, 'input', function ($event) { return $event.target.value; });
         this._resubscribeTypeahead = new __WEBPACK_IMPORTED_MODULE_2_rxjs_BehaviorSubject__["BehaviorSubject"](null);
-        this._popupService = new __WEBPACK_IMPORTED_MODULE_9__util_popup__["a" /* PopupService */](__WEBPACK_IMPORTED_MODULE_8__typeahead_window__["a" /* NgbTypeaheadWindow */], _injector, _viewContainerRef, _renderer, componentFactoryResolver);
+        this._popupService = new __WEBPACK_IMPORTED_MODULE_9__util_popup__["b" /* PopupService */](__WEBPACK_IMPORTED_MODULE_8__typeahead_window__["a" /* NgbTypeaheadWindow */], _injector, _viewContainerRef, _renderer, componentFactoryResolver);
         this._zoneSubscription = ngZone.onStable.subscribe(function () {
             if (_this.isPopupOpen()) {
-                __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__util_positioning__["a" /* positionElements */])(_this._elementRef.nativeElement, _this._windowRef.location.nativeElement, 'bottom-left', _this.container === 'body');
+                Object(__WEBPACK_IMPORTED_MODULE_7__util_positioning__["a" /* positionElements */])(_this._elementRef.nativeElement, _this._windowRef.location.nativeElement, _this.placement, _this.container === 'body');
             }
         });
     }
@@ -5376,7 +5449,7 @@ var NgbTypeahead = (function () {
         if (!this.isPopupOpen()) {
             return;
         }
-        if (Key[__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_10__util_util__["a" /* toString */])(event.which)]) {
+        if (Key[Object(__WEBPACK_IMPORTED_MODULE_10__util_util__["i" /* toString */])(event.which)]) {
             switch (event.which) {
                 case Key.ArrowDown:
                     event.preventDefault();
@@ -5391,7 +5464,7 @@ var NgbTypeahead = (function () {
                 case Key.Enter:
                 case Key.Tab:
                     var result = this._windowRef.instance.getActive();
-                    if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_10__util_util__["c" /* isDefined */])(result)) {
+                    if (Object(__WEBPACK_IMPORTED_MODULE_10__util_util__["b" /* isDefined */])(result)) {
                         event.preventDefault();
                         event.stopPropagation();
                         this._selectResult(result);
@@ -5450,7 +5523,7 @@ var NgbTypeahead = (function () {
         }
     };
     NgbTypeahead.prototype._formatItemForInput = function (item) {
-        return item && this.inputFormatter ? this.inputFormatter(item) : __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_10__util_util__["a" /* toString */])(item);
+        return item && this.inputFormatter ? this.inputFormatter(item) : Object(__WEBPACK_IMPORTED_MODULE_10__util_util__["i" /* toString */])(item);
     };
     NgbTypeahead.prototype._writeInputValue = function (value) {
         this._renderer.setProperty(this._elementRef.nativeElement, 'value', value);
@@ -5529,6 +5602,7 @@ NgbTypeahead.propDecorators = {
     'resultFormatter': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'resultTemplate': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'showHint': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
+    'placement': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"] },],
     'selectItem': [{ type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Output"] },],
 };
 //# sourceMappingURL=typeahead.js.map
@@ -5539,6 +5613,7 @@ NgbTypeahead.propDecorators = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTypeaheadModule; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__highlight__ = __webpack_require__("../../../../@ng-bootstrap/ng-bootstrap/typeahead/highlight.js");
@@ -5549,7 +5624,6 @@ NgbTypeahead.propDecorators = {
 /* unused harmony reexport NgbTypeaheadWindow */
 /* unused harmony reexport NgbTypeaheadConfig */
 /* unused harmony reexport NgbTypeahead */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NgbTypeaheadModule; });
 
 
 
@@ -5585,9 +5659,9 @@ NgbTypeaheadModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ContentRef; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return PopupService; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return ContentRef; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return PopupService; });
 
 var ContentRef = (function () {
     function ContentRef(nodes, viewRef, componentRef) {
@@ -5776,14 +5850,124 @@ var Positioning = (function () {
         targetElPosition.right = Math.round(targetElPosition.right);
         return targetElPosition;
     };
+    // get the availble placements of the target element in the viewport dependeing on the host element
+    Positioning.prototype.getAvailablePlacements = function (hostElement, targetElement) {
+        var availablePlacements = [];
+        var hostElemClientRect = hostElement.getBoundingClientRect();
+        var targetElemClientRect = targetElement.getBoundingClientRect();
+        var html = document.documentElement;
+        // left: check if target width can be placed between host left and viewport start and also height of target is
+        // inside viewport
+        if (targetElemClientRect.width < hostElemClientRect.left) {
+            // check for left only
+            if ((hostElemClientRect.top + hostElemClientRect.height / 2 - targetElement.offsetHeight / 2) > 0) {
+                availablePlacements.splice(availablePlacements.length, 1, 'left');
+            }
+            // check for left-top and left-bottom
+            this.setSecondaryPlacementForLeftRight(hostElemClientRect, targetElemClientRect, 'left', availablePlacements);
+        }
+        // top: target height is less than host top
+        if (targetElemClientRect.height < hostElemClientRect.top) {
+            availablePlacements.splice(availablePlacements.length, 1, 'top');
+            this.setSecondaryPlacementForTopBottom(hostElemClientRect, targetElemClientRect, 'top', availablePlacements);
+        }
+        // right: check if target width can be placed between host right and viewport end and also height of target is
+        // inside viewport
+        if ((window.innerWidth || html.clientWidth) - hostElemClientRect.right > targetElemClientRect.width) {
+            // check for right only
+            if ((hostElemClientRect.top + hostElemClientRect.height / 2 - targetElement.offsetHeight / 2) > 0) {
+                availablePlacements.splice(availablePlacements.length, 1, 'right');
+            }
+            // check for right-top and right-bottom
+            this.setSecondaryPlacementForLeftRight(hostElemClientRect, targetElemClientRect, 'right', availablePlacements);
+        }
+        // bottom: check if there is enough space between host bottom and viewport end for target height
+        if ((window.innerHeight || html.clientHeight) - hostElemClientRect.bottom > targetElemClientRect.height) {
+            availablePlacements.splice(availablePlacements.length, 1, 'bottom');
+            this.setSecondaryPlacementForTopBottom(hostElemClientRect, targetElemClientRect, 'bottom', availablePlacements);
+        }
+        return availablePlacements;
+    };
+    /**
+     * check if secondary placement for left and right are available i.e. left-top, left-bottom, right-top, right-bottom
+     * primaryplacement: left|right
+     * availablePlacementArr: array in which available placemets to be set
+     */
+    Positioning.prototype.setSecondaryPlacementForLeftRight = function (hostElemClientRect, targetElemClientRect, primaryPlacement, availablePlacementArr) {
+        var html = document.documentElement;
+        // check for left-bottom
+        if (targetElemClientRect.height <= hostElemClientRect.bottom) {
+            availablePlacementArr.splice(availablePlacementArr.length, 1, primaryPlacement + '-bottom');
+        }
+        if ((window.innerHeight || html.clientHeight) - hostElemClientRect.top >= targetElemClientRect.height) {
+            availablePlacementArr.splice(availablePlacementArr.length, 1, primaryPlacement + '-top');
+        }
+    };
+    /**
+     * check if secondary placement for top and bottom are available i.e. top-left, top-right, bottom-left, bottom-right
+     * primaryplacement: top|bottom
+     * availablePlacementArr: array in which available placemets to be set
+     */
+    Positioning.prototype.setSecondaryPlacementForTopBottom = function (hostElemClientRect, targetElemClientRect, primaryPlacement, availablePlacementArr) {
+        var html = document.documentElement;
+        // check for left-bottom
+        if ((window.innerHeight || html.clientHeight) - hostElemClientRect.left >= targetElemClientRect.width) {
+            availablePlacementArr.splice(availablePlacementArr.length, 1, primaryPlacement + '-left');
+        }
+        if (targetElemClientRect.width <= hostElemClientRect.right) {
+            availablePlacementArr.splice(availablePlacementArr.length, 1, primaryPlacement + '-right');
+        }
+    };
     return Positioning;
 }());
 
 var positionService = new Positioning();
+/*
+ * Accept the placement array and applies the appropriate placement dependent on the viewport.
+ * Returns the applied placement.
+ * In case of auto placement, placements are selected in order 'top', 'bottom', 'left', 'right'.
+ * */
 function positionElements(hostElement, targetElement, placement, appendToBody) {
-    var pos = positionService.positionElements(hostElement, targetElement, placement, appendToBody);
-    targetElement.style.top = pos.top + "px";
-    targetElement.style.left = pos.left + "px";
+    var placementVals = Array.isArray(placement) ? placement : [placement];
+    // replace auto placement with other placements
+    var hasAuto = placementVals.findIndex(function (val) { return val === 'auto'; });
+    if (hasAuto >= 0) {
+        ['top', 'right', 'bottom', 'left'].forEach(function (obj) {
+            if (placementVals.find(function (val) { return val.search('^' + obj + '|^' + obj + '-') !== -1; }) == null) {
+                placementVals.splice(hasAuto++, 1, obj);
+            }
+        });
+    }
+    // coordinates where to position
+    var topVal = 0, leftVal = 0;
+    var appliedPlacement;
+    // get available placements
+    var availablePlacements = positionService.getAvailablePlacements(hostElement, targetElement);
+    var _loop_1 = function (item, index) {
+        // check if passed placement is present in the available placement or otherwise apply the last placement in the
+        // passed placement list
+        if ((availablePlacements.find(function (val) { return val === item; }) != null) || (placementVals.length === index + 1)) {
+            appliedPlacement = item;
+            var pos = positionService.positionElements(hostElement, targetElement, item, appendToBody);
+            topVal = pos.top;
+            leftVal = pos.left;
+            return "break";
+        }
+    };
+    // iterate over all the passed placements
+    for (var _i = 0, _a = toItemIndexes(placementVals); _i < _a.length; _i++) {
+        var _b = _a[_i], item = _b.item, index = _b.index;
+        var state_1 = _loop_1(item, index);
+        if (state_1 === "break")
+            break;
+    }
+    targetElement.style.top = topVal + "px";
+    targetElement.style.left = leftVal + "px";
+    return appliedPlacement;
+}
+// function to get index and item of an array
+function toItemIndexes(a) {
+    return a.map(function (item, index) { return ({ item: item, index: index }); });
 }
 //# sourceMappingURL=positioning.js.map
 
@@ -5855,15 +6039,15 @@ function listenToTriggers(renderer, nativeElement, triggers, openFn, closeFn, to
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (immutable) */ __webpack_exports__["e"] = toInteger;
-/* harmony export (immutable) */ __webpack_exports__["a"] = toString;
-/* harmony export (immutable) */ __webpack_exports__["g"] = getValueInRange;
-/* harmony export (immutable) */ __webpack_exports__["h"] = isString;
+/* harmony export (immutable) */ __webpack_exports__["h"] = toInteger;
+/* harmony export (immutable) */ __webpack_exports__["i"] = toString;
+/* harmony export (immutable) */ __webpack_exports__["a"] = getValueInRange;
+/* harmony export (immutable) */ __webpack_exports__["e"] = isString;
 /* harmony export (immutable) */ __webpack_exports__["d"] = isNumber;
-/* harmony export (immutable) */ __webpack_exports__["i"] = isInteger;
-/* harmony export (immutable) */ __webpack_exports__["c"] = isDefined;
+/* harmony export (immutable) */ __webpack_exports__["c"] = isInteger;
+/* harmony export (immutable) */ __webpack_exports__["b"] = isDefined;
 /* harmony export (immutable) */ __webpack_exports__["f"] = padNumber;
-/* harmony export (immutable) */ __webpack_exports__["b"] = regExpEscape;
+/* harmony export (immutable) */ __webpack_exports__["g"] = regExpEscape;
 function toInteger(value) {
     return parseInt("" + value, 10);
 }
@@ -6618,20 +6802,24 @@ __export(__webpack_require__("../../../../angular2-highcharts/dist/index.js"));
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__app_index__ = __webpack_require__("../../../../angularfire2/app/index.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return __WEBPACK_IMPORTED_MODULE_0__app_index__["a"]; });
-/* unused harmony reexport FirebaseAppConfigToken */
 /* unused harmony export FirebaseAppProvider */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return AngularFireModule; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AngularFireModule; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return ZoneScheduler; });
 /* unused harmony export FirebaseAppName */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__firebase_app_module__ = __webpack_require__("../../../../angularfire2/firebase.app.module.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_scheduler_queue__ = __webpack_require__("../../../../rxjs/scheduler/queue.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_scheduler_queue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_scheduler_queue__);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return __WEBPACK_IMPORTED_MODULE_0__firebase_app_module__["a"]; });
+/* unused harmony reexport FirebaseAppConfigToken */
+
 
 
 var FirebaseAppName = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["InjectionToken"]('FirebaseAppName');
 var FirebaseAppProvider = {
-    provide: __WEBPACK_IMPORTED_MODULE_0__app_index__["a" /* FirebaseApp */],
-    useFactory: __WEBPACK_IMPORTED_MODULE_0__app_index__["b" /* _firebaseAppFactory */],
-    deps: [__WEBPACK_IMPORTED_MODULE_0__app_index__["c" /* FirebaseAppConfigToken */], FirebaseAppName]
+    provide: __WEBPACK_IMPORTED_MODULE_0__firebase_app_module__["a" /* FirebaseApp */],
+    useFactory: __WEBPACK_IMPORTED_MODULE_0__firebase_app_module__["c" /* _firebaseAppFactory */],
+    deps: [__WEBPACK_IMPORTED_MODULE_0__firebase_app_module__["b" /* FirebaseAppConfigToken */], FirebaseAppName]
 };
 var AngularFireModule = (function () {
     function AngularFireModule() {
@@ -6640,35 +6828,621 @@ var AngularFireModule = (function () {
         return {
             ngModule: AngularFireModule,
             providers: [
-                { provide: __WEBPACK_IMPORTED_MODULE_0__app_index__["c" /* FirebaseAppConfigToken */], useValue: config },
+                { provide: __WEBPACK_IMPORTED_MODULE_0__firebase_app_module__["b" /* FirebaseAppConfigToken */], useValue: config },
                 { provide: FirebaseAppName, useValue: appName }
             ]
         };
     };
+    AngularFireModule.decorators = [
+        { type: __WEBPACK_IMPORTED_MODULE_1__angular_core__["NgModule"], args: [{
+                    providers: [FirebaseAppProvider],
+                },] },
+    ];
+    AngularFireModule.ctorParameters = function () { return []; };
     return AngularFireModule;
 }());
 
-AngularFireModule.decorators = [
-    { type: __WEBPACK_IMPORTED_MODULE_1__angular_core__["NgModule"], args: [{
-                providers: [FirebaseAppProvider],
-            },] },
-];
-AngularFireModule.ctorParameters = function () { return []; };
+var ZoneScheduler = (function () {
+    function ZoneScheduler(zone) {
+        this.zone = zone;
+    }
+    ZoneScheduler.prototype.schedule = function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        return this.zone.run(function () { return __WEBPACK_IMPORTED_MODULE_2_rxjs_scheduler_queue__["queue"].schedule.apply(__WEBPACK_IMPORTED_MODULE_2_rxjs_scheduler_queue__["queue"], args); });
+    };
+    return ZoneScheduler;
+}());
+
 
 //# sourceMappingURL=angularfire2.js.map
 
 /***/ }),
 
-/***/ "../../../../angularfire2/app/firebase.app.module.js":
+/***/ "../../../../angularfire2/database/database.js":
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AngularFireDatabase; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database__ = __webpack_require__("../../../../firebase/database.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_firebase_database__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_angularfire2__ = __webpack_require__("../../../../angularfire2/index.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__utils__ = __webpack_require__("../../../../angularfire2/database/utils.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__list_create_reference__ = __webpack_require__("../../../../angularfire2/database/list/create-reference.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__object_create_reference__ = __webpack_require__("../../../../angularfire2/database/object/create-reference.js");
+
+
+
+
+
+
+var AngularFireDatabase = (function () {
+    function AngularFireDatabase(app) {
+        this.app = app;
+        this.database = app.database();
+    }
+    AngularFireDatabase.prototype.list = function (pathOrRef, queryFn) {
+        var ref = Object(__WEBPACK_IMPORTED_MODULE_3__utils__["b" /* getRef */])(this.app, pathOrRef);
+        var query = ref;
+        if (queryFn) {
+            query = queryFn(ref);
+        }
+        return Object(__WEBPACK_IMPORTED_MODULE_4__list_create_reference__["a" /* createListReference */])(query);
+    };
+    AngularFireDatabase.prototype.object = function (pathOrRef) {
+        var ref = Object(__WEBPACK_IMPORTED_MODULE_3__utils__["b" /* getRef */])(this.app, pathOrRef);
+        return Object(__WEBPACK_IMPORTED_MODULE_5__object_create_reference__["a" /* createObjectReference */])(ref);
+    };
+    AngularFireDatabase.prototype.createPushId = function () {
+        return this.database.ref().push().key;
+    };
+    AngularFireDatabase.decorators = [
+        { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"] },
+    ];
+    AngularFireDatabase.ctorParameters = function () { return [
+        { type: __WEBPACK_IMPORTED_MODULE_2_angularfire2__["b" /* FirebaseApp */], },
+    ]; };
+    return AngularFireDatabase;
+}());
+
+//# sourceMappingURL=database.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/database.module.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* unused harmony export _getAngularFireDatabase */
+/* unused harmony export AngularFireDatabaseProvider */
+/* unused harmony export DATABASE_PROVIDERS */
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AngularFireDatabaseModule; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database__ = __webpack_require__("../../../../firebase/database.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_firebase_database__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_angularfire2__ = __webpack_require__("../../../../angularfire2/index.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__database__ = __webpack_require__("../../../../angularfire2/database/database.js");
+
+
+
+
+function _getAngularFireDatabase(app) {
+    return new __WEBPACK_IMPORTED_MODULE_3__database__["a" /* AngularFireDatabase */](app);
+}
+var AngularFireDatabaseProvider = {
+    provide: __WEBPACK_IMPORTED_MODULE_3__database__["a" /* AngularFireDatabase */],
+    useFactory: _getAngularFireDatabase,
+    deps: [__WEBPACK_IMPORTED_MODULE_2_angularfire2__["b" /* FirebaseApp */]]
+};
+var DATABASE_PROVIDERS = [
+    AngularFireDatabaseProvider,
+];
+var AngularFireDatabaseModule = (function () {
+    function AngularFireDatabaseModule() {
+    }
+    AngularFireDatabaseModule.decorators = [
+        { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"], args: [{
+                    imports: [__WEBPACK_IMPORTED_MODULE_2_angularfire2__["a" /* AngularFireModule */]],
+                    providers: [DATABASE_PROVIDERS]
+                },] },
+    ];
+    AngularFireDatabaseModule.ctorParameters = function () { return []; };
+    return AngularFireDatabaseModule;
+}());
+
+//# sourceMappingURL=database.module.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/index.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__public_api__ = __webpack_require__("../../../../angularfire2/database/public_api.js");
+/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "a", function() { return __WEBPACK_IMPORTED_MODULE_0__public_api__["a"]; });
+/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "b", function() { return __WEBPACK_IMPORTED_MODULE_0__public_api__["b"]; });
+
+//# sourceMappingURL=index.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/list/audit-trail.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = createAuditTrail;
+/* unused harmony export auditTrail */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__state_changes__ = __webpack_require__("../../../../angularfire2/database/list/state-changes.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__loaded__ = __webpack_require__("../../../../angularfire2/database/list/loaded.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_skipWhile__ = __webpack_require__("../../../../rxjs/add/operator/skipWhile.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_skipWhile___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_skipWhile__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_withLatestFrom__ = __webpack_require__("../../../../rxjs/add/operator/withLatestFrom.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_withLatestFrom___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_withLatestFrom__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_map__ = __webpack_require__("../../../../rxjs/add/operator/map.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_map___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_map__);
+
+
+
+
+
+function createAuditTrail(query) {
+    return function (events) { return auditTrail(query, events); };
+}
+function auditTrail(query, events) {
+    var auditTrail$ = Object(__WEBPACK_IMPORTED_MODULE_0__state_changes__["b" /* stateChanges */])(query, events)
+        .scan(function (current, action) { return current.concat([action]); }, []);
+    return Object(__WEBPACK_IMPORTED_MODULE_1__loaded__["c" /* waitForLoaded */])(query, auditTrail$);
+}
+//# sourceMappingURL=audit-trail.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/list/changes.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = listChanges;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__observable_fromRef__ = __webpack_require__("../../../../angularfire2/database/observable/fromRef.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_Observable__ = __webpack_require__("../../../../rxjs/Observable.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_Observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_rxjs_Observable__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils__ = __webpack_require__("../../../../angularfire2/database/list/utils.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_scan__ = __webpack_require__("../../../../rxjs/add/operator/scan.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_scan___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_scan__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_add_observable_merge__ = __webpack_require__("../../../../rxjs/add/observable/merge.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_add_observable_merge___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_rxjs_add_observable_merge__);
+
+
+
+
+
+function listChanges(ref, events) {
+    var childEvent$ = events.map(function (event) { return Object(__WEBPACK_IMPORTED_MODULE_0__observable_fromRef__["a" /* fromRef */])(ref, event); });
+    return __WEBPACK_IMPORTED_MODULE_1_rxjs_Observable__["Observable"].merge.apply(__WEBPACK_IMPORTED_MODULE_1_rxjs_Observable__["Observable"], childEvent$).scan(function (current, action) {
+        var payload = action.payload, type = action.type, prevKey = action.prevKey, key = action.key;
+        switch (action.type) {
+            case 'child_added':
+                return current.concat([action]);
+            case 'child_removed':
+                return current.filter(function (x) { return x.payload.key !== payload.key; });
+            case 'child_changed':
+                return current.map(function (x) { return x.payload.key === key ? action : x; });
+            case 'child_moved':
+                var curPos = Object(__WEBPACK_IMPORTED_MODULE_2__utils__["b" /* positionFor */])(current, payload.key);
+                if (curPos > -1) {
+                    var data = current.splice(curPos, 1)[0];
+                    var newPost = Object(__WEBPACK_IMPORTED_MODULE_2__utils__["a" /* positionAfter */])(current, prevKey);
+                    current.splice(newPost, 0, data);
+                    return current;
+                }
+                return current;
+            default:
+                return current;
+        }
+    }, []);
+}
+//# sourceMappingURL=changes.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/list/create-reference.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = createListReference;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__loaded__ = __webpack_require__("../../../../angularfire2/database/list/loaded.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__state_changes__ = __webpack_require__("../../../../angularfire2/database/list/state-changes.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__audit_trail__ = __webpack_require__("../../../../angularfire2/database/list/audit-trail.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__data_operation__ = __webpack_require__("../../../../angularfire2/database/list/data-operation.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__remove__ = __webpack_require__("../../../../angularfire2/database/list/remove.js");
+
+
+
+
+
+function createListReference(query) {
+    return {
+        query: query,
+        update: Object(__WEBPACK_IMPORTED_MODULE_3__data_operation__["a" /* createDataOperationMethod */])(query.ref, 'update'),
+        set: Object(__WEBPACK_IMPORTED_MODULE_3__data_operation__["a" /* createDataOperationMethod */])(query.ref, 'set'),
+        push: function (data) { return query.ref.push(data); },
+        remove: Object(__WEBPACK_IMPORTED_MODULE_4__remove__["a" /* createRemoveMethod */])(query.ref),
+        snapshotChanges: Object(__WEBPACK_IMPORTED_MODULE_0__loaded__["a" /* createLoadedChanges */])(query),
+        stateChanges: Object(__WEBPACK_IMPORTED_MODULE_1__state_changes__["a" /* createStateChanges */])(query),
+        auditTrail: Object(__WEBPACK_IMPORTED_MODULE_2__audit_trail__["a" /* createAuditTrail */])(query),
+        valueChanges: function (events) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0__loaded__["b" /* loadedSnapshotChanges */])(query, events)
+                .map(function (actions) { return actions.map(function (a) { return a.payload.val(); }); });
+        }
+    };
+}
+//# sourceMappingURL=create-reference.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/list/data-operation.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = createDataOperationMethod;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__("../../../../angularfire2/database/utils.js");
+
+function createDataOperationMethod(ref, operation) {
+    return function dataOperation(item, value) {
+        return Object(__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* checkOperationCases */])(item, {
+            stringCase: function () { return ref.child(item)[operation](value); },
+            firebaseCase: function () { return item[operation](value); },
+            snapshotCase: function () { return item.ref[operation](value); }
+        });
+    };
+}
+//# sourceMappingURL=data-operation.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/list/loaded.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = createLoadedChanges;
+/* unused harmony export loadedData */
+/* harmony export (immutable) */ __webpack_exports__["c"] = waitForLoaded;
+/* harmony export (immutable) */ __webpack_exports__["b"] = loadedSnapshotChanges;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__observable_fromRef__ = __webpack_require__("../../../../angularfire2/database/observable/fromRef.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__snapshot_changes__ = __webpack_require__("../../../../angularfire2/database/list/snapshot-changes.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_skipWhile__ = __webpack_require__("../../../../rxjs/add/operator/skipWhile.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_skipWhile___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_skipWhile__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_withLatestFrom__ = __webpack_require__("../../../../rxjs/add/operator/withLatestFrom.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_withLatestFrom___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_withLatestFrom__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_map__ = __webpack_require__("../../../../rxjs/add/operator/map.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_map___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_map__);
+
+
+
+
+
+function createLoadedChanges(query) {
+    return function (events) { return loadedSnapshotChanges(query, events); };
+}
+function loadedData(query) {
+    return Object(__WEBPACK_IMPORTED_MODULE_0__observable_fromRef__["a" /* fromRef */])(query, 'value')
+        .map(function (data) {
+        var lastKeyToLoad;
+        data.payload.forEach(function (child) {
+            lastKeyToLoad = child.key;
+            return false;
+        });
+        return { data: data, lastKeyToLoad: lastKeyToLoad };
+    });
+}
+function waitForLoaded(query, action$) {
+    var loaded$ = loadedData(query);
+    return loaded$
+        .withLatestFrom(action$)
+        .map(function (_a) {
+        var loaded = _a[0], actions = _a[1];
+        var lastKeyToLoad = loaded.lastKeyToLoad;
+        var loadedKeys = actions.map(function (snap) { return snap.key; });
+        return { actions: actions, lastKeyToLoad: lastKeyToLoad, loadedKeys: loadedKeys };
+    })
+        .skipWhile(function (meta) { return meta.loadedKeys.indexOf(meta.lastKeyToLoad) === -1; })
+        .map(function (meta) { return meta.actions; });
+}
+function loadedSnapshotChanges(query, events) {
+    var snapChanges$ = Object(__WEBPACK_IMPORTED_MODULE_1__snapshot_changes__["a" /* snapshotChanges */])(query, events);
+    return waitForLoaded(query, snapChanges$);
+}
+//# sourceMappingURL=loaded.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/list/remove.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = createRemoveMethod;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__("../../../../angularfire2/database/utils.js");
+
+function createRemoveMethod(ref) {
+    return function remove(item) {
+        if (!item) {
+            return ref.remove();
+        }
+        return Object(__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* checkOperationCases */])(item, {
+            stringCase: function () { return ref.child(item).remove(); },
+            firebaseCase: function () { return item.remove(); },
+            snapshotCase: function () { return item.ref.remove(); }
+        });
+    };
+}
+//# sourceMappingURL=remove.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/list/snapshot-changes.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = snapshotChanges;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__changes__ = __webpack_require__("../../../../angularfire2/database/list/changes.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__("../../../../angularfire2/database/list/utils.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_map__ = __webpack_require__("../../../../rxjs/add/operator/map.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_map___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_map__);
+
+
+
+function snapshotChanges(query, events) {
+    events = Object(__WEBPACK_IMPORTED_MODULE_1__utils__["c" /* validateEventsArray */])(events);
+    return Object(__WEBPACK_IMPORTED_MODULE_0__changes__["a" /* listChanges */])(query, events);
+}
+//# sourceMappingURL=snapshot-changes.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/list/state-changes.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = createStateChanges;
+/* harmony export (immutable) */ __webpack_exports__["b"] = stateChanges;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__observable_fromRef__ = __webpack_require__("../../../../angularfire2/database/observable/fromRef.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__("../../../../angularfire2/database/list/utils.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_Observable__ = __webpack_require__("../../../../rxjs/Observable.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_Observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_Observable__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_add_observable_merge__ = __webpack_require__("../../../../rxjs/add/observable/merge.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_add_observable_merge___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_rxjs_add_observable_merge__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_scan__ = __webpack_require__("../../../../rxjs/add/operator/scan.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_scan___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_scan__);
+
+
+
+
+
+function createStateChanges(query) {
+    return function (events) { return stateChanges(query, events); };
+}
+function stateChanges(query, events) {
+    events = Object(__WEBPACK_IMPORTED_MODULE_1__utils__["c" /* validateEventsArray */])(events);
+    var childEvent$ = events.map(function (event) { return Object(__WEBPACK_IMPORTED_MODULE_0__observable_fromRef__["a" /* fromRef */])(query, event); });
+    return __WEBPACK_IMPORTED_MODULE_2_rxjs_Observable__["Observable"].merge.apply(__WEBPACK_IMPORTED_MODULE_2_rxjs_Observable__["Observable"], childEvent$);
+}
+//# sourceMappingURL=state-changes.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/list/utils.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["c"] = validateEventsArray;
+/* harmony export (immutable) */ __webpack_exports__["b"] = positionFor;
+/* harmony export (immutable) */ __webpack_exports__["a"] = positionAfter;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__("../../../../angularfire2/database/utils.js");
+
+function validateEventsArray(events) {
+    if (Object(__WEBPACK_IMPORTED_MODULE_0__utils__["c" /* isNil */])(events) || events.length === 0) {
+        events = ['child_added', 'child_removed', 'child_changed', 'child_moved'];
+    }
+    return events;
+}
+function positionFor(changes, key) {
+    var len = changes.length;
+    for (var i = 0; i < len; i++) {
+        if (changes[i].payload.key === key) {
+            return i;
+        }
+    }
+    return -1;
+}
+function positionAfter(changes, prevKey) {
+    if (Object(__WEBPACK_IMPORTED_MODULE_0__utils__["c" /* isNil */])(prevKey)) {
+        return 0;
+    }
+    else {
+        var i = positionFor(changes, prevKey);
+        if (i === -1) {
+            return changes.length;
+        }
+        else {
+            return i + 1;
+        }
+    }
+}
+//# sourceMappingURL=utils.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/object/create-reference.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = createObjectReference;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__snapshot_changes__ = __webpack_require__("../../../../angularfire2/database/object/snapshot-changes.js");
+
+function createObjectReference(query) {
+    return {
+        query: query,
+        snapshotChanges: Object(__WEBPACK_IMPORTED_MODULE_0__snapshot_changes__["a" /* createObjectSnapshotChanges */])(query),
+        update: function (data) { return query.ref.update(data); },
+        set: function (data) { return query.ref.set(data); },
+        remove: function () { return query.ref.remove(); },
+        valueChanges: function () {
+            return Object(__WEBPACK_IMPORTED_MODULE_0__snapshot_changes__["a" /* createObjectSnapshotChanges */])(query)()
+                .map(function (action) { return action.payload ? action.payload.val() : null; });
+        },
+    };
+}
+//# sourceMappingURL=create-reference.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/object/snapshot-changes.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = createObjectSnapshotChanges;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__observable_fromRef__ = __webpack_require__("../../../../angularfire2/database/observable/fromRef.js");
+
+function createObjectSnapshotChanges(query) {
+    return function snapshotChanges() {
+        return Object(__WEBPACK_IMPORTED_MODULE_0__observable_fromRef__["a" /* fromRef */])(query, 'value');
+    };
+}
+//# sourceMappingURL=snapshot-changes.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/observable/fromRef.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = fromRef;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__ = __webpack_require__("../../../../rxjs/Observable.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_operator_observeOn__ = __webpack_require__("../../../../rxjs/operator/observeOn.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_operator_observeOn___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_rxjs_operator_observeOn__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_angularfire2__ = __webpack_require__("../../../../angularfire2/index.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_map__ = __webpack_require__("../../../../rxjs/add/operator/map.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_map___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_rxjs_add_operator_map__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_delay__ = __webpack_require__("../../../../rxjs/add/operator/delay.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_delay___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_rxjs_add_operator_delay__);
+
+
+
+
+
+function fromRef(ref, event, listenType) {
+    if (listenType === void 0) { listenType = 'on'; }
+    var ref$ = new __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"](function (subscriber) {
+        var fn = ref[listenType](event, function (snapshot, prevKey) {
+            subscriber.next({ snapshot: snapshot, prevKey: prevKey });
+        }, subscriber.error.bind(subscriber));
+        return { unsubscribe: function () { ref.off(event, fn); } };
+    })
+        .map(function (payload) {
+        var snapshot = payload.snapshot, prevKey = payload.prevKey;
+        var key = null;
+        if (snapshot) {
+            key = snapshot.key;
+        }
+        return { type: event, payload: snapshot, prevKey: prevKey, key: key };
+    })
+        .delay(0);
+    return __WEBPACK_IMPORTED_MODULE_1_rxjs_operator_observeOn__["observeOn"].call(ref$, new __WEBPACK_IMPORTED_MODULE_2_angularfire2__["c" /* ZoneScheduler */](Zone.current));
+}
+//# sourceMappingURL=fromRef.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/public_api.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__database__ = __webpack_require__("../../../../angularfire2/database/database.js");
+/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "a", function() { return __WEBPACK_IMPORTED_MODULE_0__database__["a"]; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__list_changes__ = __webpack_require__("../../../../angularfire2/database/list/changes.js");
+/* unused harmony namespace reexport */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__list_create_reference__ = __webpack_require__("../../../../angularfire2/database/list/create-reference.js");
+/* unused harmony namespace reexport */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__list_snapshot_changes__ = __webpack_require__("../../../../angularfire2/database/list/snapshot-changes.js");
+/* unused harmony namespace reexport */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__list_state_changes__ = __webpack_require__("../../../../angularfire2/database/list/state-changes.js");
+/* unused harmony namespace reexport */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__list_audit_trail__ = __webpack_require__("../../../../angularfire2/database/list/audit-trail.js");
+/* unused harmony namespace reexport */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__list_loaded__ = __webpack_require__("../../../../angularfire2/database/list/loaded.js");
+/* unused harmony namespace reexport */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__observable_fromRef__ = __webpack_require__("../../../../angularfire2/database/observable/fromRef.js");
+/* unused harmony namespace reexport */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__database_module__ = __webpack_require__("../../../../angularfire2/database/database.module.js");
+/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "b", function() { return __WEBPACK_IMPORTED_MODULE_8__database_module__["a"]; });
+
+
+
+
+
+
+
+
+
+//# sourceMappingURL=public_api.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/database/utils.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* unused harmony export isString */
+/* unused harmony export isFirebaseDataSnapshot */
+/* harmony export (immutable) */ __webpack_exports__["c"] = isNil;
+/* unused harmony export isFirebaseRef */
+/* harmony export (immutable) */ __webpack_exports__["b"] = getRef;
+/* harmony export (immutable) */ __webpack_exports__["a"] = checkOperationCases;
+function isString(value) {
+    return typeof value === 'string';
+}
+function isFirebaseDataSnapshot(value) {
+    return typeof value.exportVal === 'function';
+}
+function isNil(obj) {
+    return obj === undefined || obj === null;
+}
+function isFirebaseRef(value) {
+    return typeof value.set === 'function';
+}
+function getRef(app, pathRef) {
+    return isFirebaseRef(pathRef) ? pathRef
+        : app.database().ref(pathRef);
+}
+function checkOperationCases(item, cases) {
+    if (isString(item)) {
+        return cases.stringCase();
+    }
+    else if (isFirebaseRef(item)) {
+        return cases.firebaseCase();
+    }
+    else if (isFirebaseDataSnapshot(item)) {
+        return cases.snapshotCase();
+    }
+    throw new Error("Expects a string, snapshot, or reference. Got: " + typeof item);
+}
+//# sourceMappingURL=utils.js.map
+
+/***/ }),
+
+/***/ "../../../../angularfire2/firebase.app.module.js":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return FirebaseAppConfigToken; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return FirebaseApp; });
+/* harmony export (immutable) */ __webpack_exports__["c"] = _firebaseAppFactory;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_app__ = __webpack_require__("../../../../firebase/app.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_app___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_firebase_app__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return FirebaseAppConfigToken; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return FirebaseApp; });
-/* harmony export (immutable) */ __webpack_exports__["b"] = _firebaseAppFactory;
 
 
 var FirebaseAppConfigToken = new __WEBPACK_IMPORTED_MODULE_0__angular_core__["InjectionToken"]('FirebaseAppConfigToken');
@@ -6688,6 +7462,9 @@ function _firebaseAppFactory(config, appName) {
         }
     }
     catch (e) {
+        if (e.code === "app/duplicate-app") {
+            return __WEBPACK_IMPORTED_MODULE_1_firebase_app__["app"](e.name);
+        }
         return __WEBPACK_IMPORTED_MODULE_1_firebase_app__["app"](null);
     }
 }
@@ -6695,920 +7472,32 @@ function _firebaseAppFactory(config, appName) {
 
 /***/ }),
 
-/***/ "../../../../angularfire2/app/index.js":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__firebase_app_module__ = __webpack_require__("../../../../angularfire2/app/firebase.app.module.js");
-/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "a", function() { return __WEBPACK_IMPORTED_MODULE_0__firebase_app_module__["a"]; });
-/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "b", function() { return __WEBPACK_IMPORTED_MODULE_0__firebase_app_module__["b"]; });
-/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "c", function() { return __WEBPACK_IMPORTED_MODULE_0__firebase_app_module__["c"]; });
-
-//# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ "../../../../angularfire2/database.js":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__database_database__ = __webpack_require__("../../../../angularfire2/database/database.js");
-/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "b", function() { return __WEBPACK_IMPORTED_MODULE_0__database_database__["a"]; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__database_firebase_list_factory__ = __webpack_require__("../../../../angularfire2/database/firebase_list_factory.js");
-/* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__database_firebase_list_observable__ = __webpack_require__("../../../../angularfire2/database/firebase_list_observable.js");
-/* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__database_firebase_object_factory__ = __webpack_require__("../../../../angularfire2/database/firebase_object_factory.js");
-/* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__database_firebase_object_observable__ = __webpack_require__("../../../../angularfire2/database/firebase_object_observable.js");
-/* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__database_query_observable__ = __webpack_require__("../../../../angularfire2/database/query_observable.js");
-/* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__database_database_module__ = __webpack_require__("../../../../angularfire2/database/database.module.js");
-/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "a", function() { return __WEBPACK_IMPORTED_MODULE_6__database_database_module__["a"]; });
-
-
-
-
-
-
-
-//# sourceMappingURL=database.js.map
-
-/***/ }),
-
-/***/ "../../../../angularfire2/database/database.js":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_firebase_database__ = __webpack_require__("../../../../firebase/database.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_firebase_database___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_firebase_database__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angularfire2__ = __webpack_require__("../../../../angularfire2/angularfire2.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__firebase_list_factory__ = __webpack_require__("../../../../angularfire2/database/firebase_list_factory.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__firebase_object_factory__ = __webpack_require__("../../../../angularfire2/database/firebase_object_factory.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__utils__ = __webpack_require__("../../../../angularfire2/utils.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AngularFireDatabase; });
-
-
-
-
-
-
-var AngularFireDatabase = (function () {
-    function AngularFireDatabase(app) {
-        this.app = app;
-        this.database = app.database();
-    }
-    AngularFireDatabase.prototype.list = function (pathOrRef, opts) {
-        var ref = __WEBPACK_IMPORTED_MODULE_5__utils__["j" /* getRef */](this.app, pathOrRef);
-        return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__firebase_list_factory__["a" /* FirebaseListFactory */])(ref, opts);
-    };
-    AngularFireDatabase.prototype.object = function (pathOrRef, opts) {
-        var ref = __WEBPACK_IMPORTED_MODULE_5__utils__["j" /* getRef */](this.app, pathOrRef);
-        return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_4__firebase_object_factory__["a" /* FirebaseObjectFactory */])(ref, opts);
-    };
-    return AngularFireDatabase;
-}());
-
-AngularFireDatabase.decorators = [
-    { type: __WEBPACK_IMPORTED_MODULE_1__angular_core__["Injectable"] },
-];
-AngularFireDatabase.ctorParameters = function () { return [
-    { type: __WEBPACK_IMPORTED_MODULE_2__angularfire2__["a" /* FirebaseApp */], },
-]; };
-//# sourceMappingURL=database.js.map
-
-/***/ }),
-
-/***/ "../../../../angularfire2/database/database.module.js":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database__ = __webpack_require__("../../../../firebase/database.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_firebase_database__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angularfire2__ = __webpack_require__("../../../../angularfire2/angularfire2.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__database__ = __webpack_require__("../../../../angularfire2/database/database.js");
-/* unused harmony export _getAngularFireDatabase */
-/* unused harmony export AngularFireDatabaseProvider */
-/* unused harmony export DATABASE_PROVIDERS */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AngularFireDatabaseModule; });
-
-
-
-
-function _getAngularFireDatabase(app) {
-    return new __WEBPACK_IMPORTED_MODULE_3__database__["a" /* AngularFireDatabase */](app);
-}
-var AngularFireDatabaseProvider = {
-    provide: __WEBPACK_IMPORTED_MODULE_3__database__["a" /* AngularFireDatabase */],
-    useFactory: _getAngularFireDatabase,
-    deps: [__WEBPACK_IMPORTED_MODULE_2__angularfire2__["a" /* FirebaseApp */]]
-};
-var DATABASE_PROVIDERS = [
-    AngularFireDatabaseProvider,
-];
-var AngularFireDatabaseModule = (function () {
-    function AngularFireDatabaseModule() {
-    }
-    return AngularFireDatabaseModule;
-}());
-
-AngularFireDatabaseModule.decorators = [
-    { type: __WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"], args: [{
-                imports: [__WEBPACK_IMPORTED_MODULE_2__angularfire2__["b" /* AngularFireModule */]],
-                providers: [DATABASE_PROVIDERS]
-            },] },
-];
-AngularFireDatabaseModule.ctorParameters = function () { return []; };
-//# sourceMappingURL=database.module.js.map
-
-/***/ }),
-
-/***/ "../../../../angularfire2/database/firebase_list_factory.js":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__("../../../../angularfire2/utils.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database__ = __webpack_require__("../../../../firebase/database.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_firebase_database__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__firebase_list_observable__ = __webpack_require__("../../../../angularfire2/database/firebase_list_observable.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_observeOn__ = __webpack_require__("../../../../rxjs/operator/observeOn.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_observeOn___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_rxjs_operator_observeOn__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__query_observable__ = __webpack_require__("../../../../angularfire2/database/query_observable.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5_rxjs_operator_switchMap__ = __webpack_require__("../../../../rxjs/operator/switchMap.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5_rxjs_operator_switchMap___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_5_rxjs_operator_switchMap__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6_rxjs_operator_map__ = __webpack_require__("../../../../rxjs/operator/map.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6_rxjs_operator_map___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_6_rxjs_operator_map__);
-/* harmony export (immutable) */ __webpack_exports__["a"] = FirebaseListFactory;
-/* unused harmony export onChildAdded */
-/* unused harmony export onChildChanged */
-/* unused harmony export onChildRemoved */
-/* unused harmony export onChildUpdated */
-
-
-
-
-
-
-
-function FirebaseListFactory(ref, _a) {
-    var _b = _a === void 0 ? {} : _a, preserveSnapshot = _b.preserveSnapshot, _c = _b.query, query = _c === void 0 ? {} : _c;
-    if (__WEBPACK_IMPORTED_MODULE_0__utils__["i" /* isEmptyObject */](query)) {
-        return firebaseListObservable(ref, { preserveSnapshot: preserveSnapshot });
-    }
-    var queryObs = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_4__query_observable__["a" /* observeQuery */])(query);
-    return new __WEBPACK_IMPORTED_MODULE_2__firebase_list_observable__["a" /* FirebaseListObservable */](ref, function (subscriber) {
-        var sub = __WEBPACK_IMPORTED_MODULE_5_rxjs_operator_switchMap__["switchMap"].call(__WEBPACK_IMPORTED_MODULE_6_rxjs_operator_map__["map"].call(queryObs, function (query) {
-            var queried = ref;
-            if (query.orderByChild) {
-                queried = queried.orderByChild(query.orderByChild);
-            }
-            else if (query.orderByKey) {
-                queried = queried.orderByKey();
-            }
-            else if (query.orderByPriority) {
-                queried = queried.orderByPriority();
-            }
-            else if (query.orderByValue) {
-                queried = queried.orderByValue();
-            }
-            if (__WEBPACK_IMPORTED_MODULE_0__utils__["b" /* hasKey */](query, "equalTo")) {
-                if (__WEBPACK_IMPORTED_MODULE_0__utils__["b" /* hasKey */](query.equalTo, "value")) {
-                    queried = queried.equalTo(query.equalTo.value, query.equalTo.key);
-                }
-                else {
-                    queried = queried.equalTo(query.equalTo);
-                }
-                if (__WEBPACK_IMPORTED_MODULE_0__utils__["b" /* hasKey */](query, "startAt") || __WEBPACK_IMPORTED_MODULE_0__utils__["b" /* hasKey */](query, "endAt")) {
-                    throw new Error('Query Error: Cannot use startAt or endAt with equalTo.');
-                }
-                if (!__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* isNil */](query.limitToFirst)) {
-                    queried = queried.limitToFirst(query.limitToFirst);
-                }
-                if (!__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* isNil */](query.limitToLast)) {
-                    queried = queried.limitToLast(query.limitToLast);
-                }
-                return queried;
-            }
-            if (__WEBPACK_IMPORTED_MODULE_0__utils__["b" /* hasKey */](query, "startAt")) {
-                if (__WEBPACK_IMPORTED_MODULE_0__utils__["b" /* hasKey */](query.startAt, "value")) {
-                    queried = queried.startAt(query.startAt.value, query.startAt.key);
-                }
-                else {
-                    queried = queried.startAt(query.startAt);
-                }
-            }
-            if (__WEBPACK_IMPORTED_MODULE_0__utils__["b" /* hasKey */](query, "endAt")) {
-                if (__WEBPACK_IMPORTED_MODULE_0__utils__["b" /* hasKey */](query.endAt, "value")) {
-                    queried = queried.endAt(query.endAt.value, query.endAt.key);
-                }
-                else {
-                    queried = queried.endAt(query.endAt);
-                }
-            }
-            if (!__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* isNil */](query.limitToFirst) && query.limitToLast) {
-                throw new Error('Query Error: Cannot use limitToFirst with limitToLast.');
-            }
-            if (!__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* isNil */](query.limitToFirst)) {
-                queried = queried.limitToFirst(query.limitToFirst);
-            }
-            if (!__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* isNil */](query.limitToLast)) {
-                queried = queried.limitToLast(query.limitToLast);
-            }
-            return queried;
-        }), function (queryRef, ix) {
-            return firebaseListObservable(queryRef, { preserveSnapshot: preserveSnapshot });
-        })
-            .subscribe(subscriber);
-        return function () { return sub.unsubscribe(); };
-    });
-}
-function firebaseListObservable(ref, _a) {
-    var preserveSnapshot = (_a === void 0 ? {} : _a).preserveSnapshot;
-    var toValue = preserveSnapshot ? (function (snapshot) { return snapshot; }) : __WEBPACK_IMPORTED_MODULE_0__utils__["c" /* unwrapMapFn */];
-    var toKey = preserveSnapshot ? (function (value) { return value.key; }) : (function (value) { return value.$key; });
-    var listObs = new __WEBPACK_IMPORTED_MODULE_2__firebase_list_observable__["a" /* FirebaseListObservable */](ref, function (obs) {
-        var handles = [];
-        var hasLoaded = false;
-        var lastLoadedKey = null;
-        var array = [];
-        ref.once('value', function (snap) {
-            if (snap.exists()) {
-                snap.forEach(function (child) {
-                    lastLoadedKey = child.key;
-                });
-                if (array.find(function (child) { return toKey(child) === lastLoadedKey; })) {
-                    hasLoaded = true;
-                    obs.next(array);
-                }
-            }
-            else {
-                hasLoaded = true;
-                obs.next(array);
-            }
-        }, function (err) {
-            if (err) {
-                obs.error(err);
-                obs.complete();
-            }
-        });
-        var addFn = ref.on('child_added', function (child, prevKey) {
-            array = onChildAdded(array, toValue(child), toKey, prevKey);
-            if (hasLoaded) {
-                obs.next(array);
-            }
-            else if (child.key === lastLoadedKey) {
-                hasLoaded = true;
-                obs.next(array);
-            }
-        }, function (err) {
-            if (err) {
-                obs.error(err);
-                obs.complete();
-            }
-        });
-        handles.push({ event: 'child_added', handle: addFn });
-        var remFn = ref.on('child_removed', function (child) {
-            array = onChildRemoved(array, toValue(child), toKey);
-            if (hasLoaded) {
-                obs.next(array);
-            }
-        }, function (err) {
-            if (err) {
-                obs.error(err);
-                obs.complete();
-            }
-        });
-        handles.push({ event: 'child_removed', handle: remFn });
-        var chgFn = ref.on('child_changed', function (child, prevKey) {
-            array = onChildChanged(array, toValue(child), toKey, prevKey);
-            if (hasLoaded) {
-                obs.next(array);
-            }
-        }, function (err) {
-            if (err) {
-                obs.error(err);
-                obs.complete();
-            }
-        });
-        handles.push({ event: 'child_changed', handle: chgFn });
-        return function () {
-            handles.forEach(function (item) {
-                ref.off(item.event, item.handle);
-            });
-        };
-    });
-    return __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_observeOn__["observeOn"].call(listObs, new __WEBPACK_IMPORTED_MODULE_0__utils__["d" /* ZoneScheduler */](Zone.current));
-}
-function onChildAdded(arr, child, toKey, prevKey) {
-    if (!arr.length) {
-        return [child];
-    }
-    return arr.reduce(function (accumulator, curr, i) {
-        if (!prevKey && i === 0) {
-            accumulator.push(child);
-        }
-        accumulator.push(curr);
-        if (prevKey && prevKey === toKey(curr)) {
-            accumulator.push(child);
-        }
-        return accumulator;
-    }, []);
-}
-function onChildChanged(arr, child, toKey, prevKey) {
-    var childKey = toKey(child);
-    return arr.reduce(function (accumulator, val, i) {
-        var valKey = toKey(val);
-        if (!prevKey && i == 0) {
-            accumulator.push(child);
-            if (valKey !== childKey) {
-                accumulator.push(val);
-            }
-        }
-        else if (valKey === prevKey) {
-            accumulator.push(val);
-            accumulator.push(child);
-        }
-        else if (valKey !== childKey) {
-            accumulator.push(val);
-        }
-        return accumulator;
-    }, []);
-}
-function onChildRemoved(arr, child, toKey) {
-    var childKey = toKey(child);
-    return arr.filter(function (c) { return toKey(c) !== childKey; });
-}
-function onChildUpdated(arr, child, toKey, prevKey) {
-    return arr.map(function (v, i, arr) {
-        if (!prevKey && !i) {
-            return child;
-        }
-        else if (i > 0 && toKey(arr[i - 1]) === prevKey) {
-            return child;
-        }
-        else {
-            return v;
-        }
-    });
-}
-//# sourceMappingURL=firebase_list_factory.js.map
-
-/***/ }),
-
-/***/ "../../../../angularfire2/database/firebase_list_observable.js":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__ = __webpack_require__("../../../../rxjs/Observable.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database__ = __webpack_require__("../../../../firebase/database.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_firebase_database__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils__ = __webpack_require__("../../../../angularfire2/utils.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return FirebaseListObservable; });
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-
-
-
-var FirebaseListObservable = (function (_super) {
-    __extends(FirebaseListObservable, _super);
-    function FirebaseListObservable($ref, subscribe) {
-        var _this = _super.call(this, subscribe) || this;
-        _this.$ref = $ref;
-        return _this;
-    }
-    FirebaseListObservable.prototype.lift = function (operator) {
-        var observable = new FirebaseListObservable(this.$ref);
-        observable.source = this;
-        observable.operator = operator;
-        observable.$ref = this.$ref;
-        return observable;
-    };
-    FirebaseListObservable.prototype.push = function (val) {
-        if (!this.$ref) {
-            throw new Error('No ref specified for this Observable!');
-        }
-        return this.$ref.ref.push(val);
-    };
-    FirebaseListObservable.prototype.update = function (item, value) {
-        var _this = this;
-        return this._checkOperationCases(item, {
-            stringCase: function () { return _this.$ref.ref.child(item).update(value); },
-            firebaseCase: function () { return item.update(value); },
-            snapshotCase: function () { return item.ref.update(value); },
-            unwrappedSnapshotCase: function () { return _this.$ref.ref.child(item.$key).update(value); }
-        });
-    };
-    FirebaseListObservable.prototype.remove = function (item) {
-        var _this = this;
-        if (!item) {
-            return this.$ref.ref.remove();
-        }
-        return this._checkOperationCases(item, {
-            stringCase: function () { return _this.$ref.ref.child(item).remove(); },
-            firebaseCase: function () { return item.remove(); },
-            snapshotCase: function () { return item.ref.remove(); },
-            unwrappedSnapshotCase: function () { return _this.$ref.ref.child(item.$key).remove(); }
-        });
-    };
-    FirebaseListObservable.prototype._checkOperationCases = function (item, cases) {
-        if (__WEBPACK_IMPORTED_MODULE_2__utils__["e" /* isString */](item)) {
-            return cases.stringCase();
-        }
-        else if (__WEBPACK_IMPORTED_MODULE_2__utils__["f" /* isFirebaseRef */](item)) {
-            return cases.firebaseCase();
-        }
-        else if (__WEBPACK_IMPORTED_MODULE_2__utils__["g" /* isFirebaseDataSnapshot */](item)) {
-            return cases.snapshotCase();
-        }
-        else if (__WEBPACK_IMPORTED_MODULE_2__utils__["h" /* isAFUnwrappedSnapshot */](item)) {
-            return cases.unwrappedSnapshotCase();
-        }
-        throw new Error("Method requires a key, snapshot, reference, or unwrapped snapshot. Got: " + typeof item);
-    };
-    return FirebaseListObservable;
-}(__WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"]));
-
-//# sourceMappingURL=firebase_list_observable.js.map
-
-/***/ }),
-
-/***/ "../../../../angularfire2/database/firebase_object_factory.js":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__firebase_object_observable__ = __webpack_require__("../../../../angularfire2/database/firebase_object_observable.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_operator_observeOn__ = __webpack_require__("../../../../rxjs/operator/observeOn.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_operator_observeOn___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_rxjs_operator_observeOn__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_firebase_database__ = __webpack_require__("../../../../firebase/database.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_firebase_database___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_firebase_database__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__utils__ = __webpack_require__("../../../../angularfire2/utils.js");
-/* harmony export (immutable) */ __webpack_exports__["a"] = FirebaseObjectFactory;
-
-
-
-
-function FirebaseObjectFactory(ref, _a) {
-    var preserveSnapshot = (_a === void 0 ? {} : _a).preserveSnapshot;
-    var objectObservable = new __WEBPACK_IMPORTED_MODULE_0__firebase_object_observable__["a" /* FirebaseObjectObservable */](function (obs) {
-        var fn = ref.on('value', function (snapshot) {
-            obs.next(preserveSnapshot ? snapshot : __WEBPACK_IMPORTED_MODULE_3__utils__["c" /* unwrapMapFn */](snapshot));
-        }, function (err) {
-            if (err) {
-                obs.error(err);
-                obs.complete();
-            }
-        });
-        return function () { return ref.off('value', fn); };
-    }, ref);
-    return __WEBPACK_IMPORTED_MODULE_1_rxjs_operator_observeOn__["observeOn"].call(objectObservable, new __WEBPACK_IMPORTED_MODULE_3__utils__["d" /* ZoneScheduler */](Zone.current));
-}
-//# sourceMappingURL=firebase_object_factory.js.map
-
-/***/ }),
-
-/***/ "../../../../angularfire2/database/firebase_object_observable.js":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__ = __webpack_require__("../../../../rxjs/Observable.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database__ = __webpack_require__("../../../../firebase/database.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_firebase_database___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_firebase_database__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return FirebaseObjectObservable; });
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-
-
-var FirebaseObjectObservable = (function (_super) {
-    __extends(FirebaseObjectObservable, _super);
-    function FirebaseObjectObservable(subscribe, $ref) {
-        var _this = _super.call(this, subscribe) || this;
-        _this.$ref = $ref;
-        return _this;
-    }
-    FirebaseObjectObservable.prototype.lift = function (operator) {
-        var observable = new FirebaseObjectObservable();
-        observable.source = this;
-        observable.operator = operator;
-        observable.$ref = this.$ref;
-        return observable;
-    };
-    FirebaseObjectObservable.prototype.set = function (value) {
-        if (!this.$ref) {
-            throw new Error('No ref specified for this Observable!');
-        }
-        return this.$ref.set(value);
-    };
-    FirebaseObjectObservable.prototype.update = function (value) {
-        if (!this.$ref) {
-            throw new Error('No ref specified for this Observable!');
-        }
-        return this.$ref.update(value);
-    };
-    FirebaseObjectObservable.prototype.remove = function () {
-        if (!this.$ref) {
-            throw new Error('No ref specified for this Observable!');
-        }
-        return this.$ref.remove();
-    };
-    return FirebaseObjectObservable;
-}(__WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"]));
-
-//# sourceMappingURL=firebase_object_observable.js.map
-
-/***/ }),
-
-/***/ "../../../../angularfire2/database/query_observable.js":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__ = __webpack_require__("../../../../rxjs/Observable.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_observable_of__ = __webpack_require__("../../../../rxjs/observable/of.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_observable_of___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_rxjs_observable_of__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_operator_combineLatest__ = __webpack_require__("../../../../rxjs/operator/combineLatest.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_operator_combineLatest___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_operator_combineLatest__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_merge__ = __webpack_require__("../../../../rxjs/operator/merge.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_merge___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_rxjs_operator_merge__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map__ = __webpack_require__("../../../../rxjs/operator/map.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5_rxjs_operator_auditTime__ = __webpack_require__("../../../../rxjs/operator/auditTime.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5_rxjs_operator_auditTime___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_5_rxjs_operator_auditTime__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__interfaces__ = __webpack_require__("../../../../angularfire2/interfaces.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__utils__ = __webpack_require__("../../../../angularfire2/utils.js");
-/* harmony export (immutable) */ __webpack_exports__["a"] = observeQuery;
-/* unused harmony export getOrderObservables */
-/* unused harmony export getLimitToObservables */
-/* unused harmony export getStartAtObservable */
-/* unused harmony export getEndAtObservable */
-/* unused harmony export getEqualToObservable */
-
-
-
-
-
-
-
-
-function observeQuery(query, audit) {
-    if (audit === void 0) { audit = true; }
-    if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__utils__["a" /* isNil */])(query)) {
-        return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1_rxjs_observable_of__["of"])(null);
-    }
-    return __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"].create(function (observer) {
-        var combined = __WEBPACK_IMPORTED_MODULE_2_rxjs_operator_combineLatest__["combineLatest"].call(getOrderObservables(query), getStartAtObservable(query), getEndAtObservable(query), getEqualToObservable(query), getLimitToObservables(query));
-        if (audit) {
-            combined = __WEBPACK_IMPORTED_MODULE_5_rxjs_operator_auditTime__["auditTime"].call(combined, 0);
-        }
-        combined
-            .subscribe(function (_a) {
-            var orderBy = _a[0], startAt = _a[1], endAt = _a[2], equalTo = _a[3], limitTo = _a[4];
-            var serializedOrder = {};
-            if (!__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__utils__["a" /* isNil */])(orderBy) && !__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__utils__["a" /* isNil */])(orderBy.value)) {
-                switch (orderBy.key) {
-                    case __WEBPACK_IMPORTED_MODULE_6__interfaces__["a" /* OrderByOptions */].Key:
-                        serializedOrder = { orderByKey: orderBy.value };
-                        break;
-                    case __WEBPACK_IMPORTED_MODULE_6__interfaces__["a" /* OrderByOptions */].Priority:
-                        serializedOrder = { orderByPriority: orderBy.value };
-                        break;
-                    case __WEBPACK_IMPORTED_MODULE_6__interfaces__["a" /* OrderByOptions */].Value:
-                        serializedOrder = { orderByValue: orderBy.value };
-                        break;
-                    case __WEBPACK_IMPORTED_MODULE_6__interfaces__["a" /* OrderByOptions */].Child:
-                        serializedOrder = { orderByChild: orderBy.value };
-                        break;
-                }
-            }
-            if (!__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__utils__["a" /* isNil */])(limitTo) && !__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__utils__["a" /* isNil */])(limitTo.value)) {
-                switch (limitTo.key) {
-                    case __WEBPACK_IMPORTED_MODULE_6__interfaces__["b" /* LimitToOptions */].First:
-                        serializedOrder.limitToFirst = limitTo.value;
-                        break;
-                    case __WEBPACK_IMPORTED_MODULE_6__interfaces__["b" /* LimitToOptions */].Last: {
-                        serializedOrder.limitToLast = limitTo.value;
-                        break;
-                    }
-                }
-            }
-            if (startAt !== undefined) {
-                serializedOrder.startAt = startAt;
-            }
-            if (endAt !== undefined) {
-                serializedOrder.endAt = endAt;
-            }
-            if (equalTo !== undefined) {
-                serializedOrder.equalTo = equalTo;
-            }
-            observer.next(serializedOrder);
-        });
-    });
-}
-function getOrderObservables(query) {
-    var observables = ['orderByChild', 'orderByKey', 'orderByValue', 'orderByPriority']
-        .map(function (key, option) {
-        return ({ key: key, option: option });
-    })
-        .filter(function (_a) {
-        var key = _a.key, option = _a.option;
-        return !__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__utils__["a" /* isNil */])(query[key]);
-    })
-        .map(function (_a) {
-        var key = _a.key, option = _a.option;
-        return mapToOrderBySelection(query[key], option);
-    });
-    if (observables.length === 1) {
-        return observables[0];
-    }
-    else if (observables.length > 1) {
-        return __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_merge__["merge"].apply(observables[0], observables.slice(1));
-    }
-    else {
-        return new __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"](function (subscriber) {
-            subscriber.next(null);
-        });
-    }
-}
-function getLimitToObservables(query) {
-    var observables = ['limitToFirst', 'limitToLast']
-        .map(function (key, option) { return ({ key: key, option: option }); })
-        .filter(function (_a) {
-        var key = _a.key, option = _a.option;
-        return !__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__utils__["a" /* isNil */])(query[key]);
-    })
-        .map(function (_a) {
-        var key = _a.key, option = _a.option;
-        return mapToLimitToSelection(query[key], option);
-    });
-    if (observables.length === 1) {
-        return observables[0];
-    }
-    else if (observables.length > 1) {
-        var mergedObs = __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_merge__["merge"].apply(observables[0], observables.slice(1));
-        return mergedObs;
-    }
-    else {
-        return new __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"](function (subscriber) {
-            subscriber.next(null);
-        });
-    }
-}
-function getStartAtObservable(query) {
-    if (query.startAt instanceof __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"]) {
-        return query.startAt;
-    }
-    else if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__utils__["b" /* hasKey */])(query, 'startAt')) {
-        return new __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"](function (subscriber) {
-            subscriber.next(query.startAt);
-        });
-    }
-    else {
-        return new __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"](function (subscriber) {
-            subscriber.next(undefined);
-        });
-    }
-}
-function getEndAtObservable(query) {
-    if (query.endAt instanceof __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"]) {
-        return query.endAt;
-    }
-    else if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__utils__["b" /* hasKey */])(query, 'endAt')) {
-        return new __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"](function (subscriber) {
-            subscriber.next(query.endAt);
-        });
-    }
-    else {
-        return new __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"](function (subscriber) {
-            subscriber.next(undefined);
-        });
-    }
-}
-function getEqualToObservable(query) {
-    if (query.equalTo instanceof __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"]) {
-        return query.equalTo;
-    }
-    else if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_7__utils__["b" /* hasKey */])(query, 'equalTo')) {
-        return new __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"](function (subscriber) {
-            subscriber.next(query.equalTo);
-        });
-    }
-    else {
-        return new __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"](function (subscriber) {
-            subscriber.next(undefined);
-        });
-    }
-}
-function mapToOrderBySelection(value, key) {
-    if (value instanceof __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"]) {
-        return __WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map__["map"]
-            .call(value, function (value) {
-            return ({ value: value, key: key });
-        });
-    }
-    else {
-        return new __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"](function (subscriber) {
-            subscriber.next({ key: key, value: value });
-        });
-    }
-}
-function mapToLimitToSelection(value, key) {
-    if (value instanceof __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"]) {
-        return __WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map__["map"]
-            .call(value, function (value) { return ({ value: value, key: key }); });
-    }
-    else {
-        return new __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"](function (subscriber) {
-            subscriber.next({ key: key, value: value });
-        });
-    }
-}
-function hasObservableProperties(query) {
-    if (query.orderByKey instanceof __WEBPACK_IMPORTED_MODULE_0_rxjs_Observable__["Observable"])
-        return true;
-    return false;
-}
-//# sourceMappingURL=query_observable.js.map
-
-/***/ }),
-
 /***/ "../../../../angularfire2/index.js":
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angularfire2__ = __webpack_require__("../../../../angularfire2/angularfire2.js");
-/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "a", function() { return __WEBPACK_IMPORTED_MODULE_0__angularfire2__["b"]; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__public_api__ = __webpack_require__("../../../../angularfire2/public_api.js");
+/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "a", function() { return __WEBPACK_IMPORTED_MODULE_0__public_api__["a"]; });
+/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "b", function() { return __WEBPACK_IMPORTED_MODULE_0__public_api__["b"]; });
+/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "c", function() { return __WEBPACK_IMPORTED_MODULE_0__public_api__["c"]; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__firebase_app_module__ = __webpack_require__("../../../../angularfire2/firebase.app.module.js");
+/* unused harmony reexport ɵa */
+
 
 //# sourceMappingURL=index.js.map
 
 /***/ }),
 
-/***/ "../../../../angularfire2/interfaces.js":
+/***/ "../../../../angularfire2/public_api.js":
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return OrderByOptions; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return LimitToOptions; });
-/* unused harmony export QueryOptions */
-var OrderByOptions;
-(function (OrderByOptions) {
-    OrderByOptions[OrderByOptions["Child"] = 0] = "Child";
-    OrderByOptions[OrderByOptions["Key"] = 1] = "Key";
-    OrderByOptions[OrderByOptions["Value"] = 2] = "Value";
-    OrderByOptions[OrderByOptions["Priority"] = 3] = "Priority";
-})(OrderByOptions || (OrderByOptions = {}));
-var LimitToOptions;
-(function (LimitToOptions) {
-    LimitToOptions[LimitToOptions["First"] = 0] = "First";
-    LimitToOptions[LimitToOptions["Last"] = 1] = "Last";
-})(LimitToOptions || (LimitToOptions = {}));
-var QueryOptions;
-(function (QueryOptions) {
-    QueryOptions[QueryOptions["EqualTo"] = 0] = "EqualTo";
-    QueryOptions[QueryOptions["StartAt"] = 1] = "StartAt";
-    QueryOptions[QueryOptions["EndAt"] = 2] = "EndAt";
-})(QueryOptions || (QueryOptions = {}));
-//# sourceMappingURL=interfaces.js.map
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angularfire2__ = __webpack_require__("../../../../angularfire2/angularfire2.js");
+/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "a", function() { return __WEBPACK_IMPORTED_MODULE_0__angularfire2__["a"]; });
+/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "b", function() { return __WEBPACK_IMPORTED_MODULE_0__angularfire2__["b"]; });
+/* harmony namespace reexport (by used) */ __webpack_require__.d(__webpack_exports__, "c", function() { return __WEBPACK_IMPORTED_MODULE_0__angularfire2__["c"]; });
 
-/***/ }),
-
-/***/ "../../../../angularfire2/utils.js":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_scheduler_queue__ = __webpack_require__("../../../../rxjs/scheduler/queue.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_rxjs_scheduler_queue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_rxjs_scheduler_queue__);
-/* harmony export (immutable) */ __webpack_exports__["a"] = isNil;
-/* harmony export (immutable) */ __webpack_exports__["b"] = hasKey;
-/* harmony export (immutable) */ __webpack_exports__["e"] = isString;
-/* harmony export (immutable) */ __webpack_exports__["f"] = isFirebaseRef;
-/* harmony export (immutable) */ __webpack_exports__["g"] = isFirebaseDataSnapshot;
-/* harmony export (immutable) */ __webpack_exports__["h"] = isAFUnwrappedSnapshot;
-/* unused harmony export isFirebaseQuery */
-/* harmony export (immutable) */ __webpack_exports__["i"] = isEmptyObject;
-/* harmony export (immutable) */ __webpack_exports__["c"] = unwrapMapFn;
-/* unused harmony export stripTrailingSlash */
-/* unused harmony export stripLeadingSlash */
-/* unused harmony export isAbsoluteUrl */
-/* harmony export (immutable) */ __webpack_exports__["j"] = getRef;
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return ZoneScheduler; });
-
-var REGEX_ABSOLUTE_URL = /^[a-z]+:\/\/.*/;
-function isNil(obj) {
-    return obj === undefined || obj === null;
-}
-function hasKey(obj, key) {
-    return obj && obj[key] !== undefined;
-}
-function isString(value) {
-    return typeof value === 'string';
-}
-function isFirebaseRef(value) {
-    return typeof value.set === 'function';
-}
-function isFirebaseDataSnapshot(value) {
-    return typeof value.exportVal === 'function';
-}
-function isAFUnwrappedSnapshot(value) {
-    return typeof value.$key === 'string';
-}
-function isFirebaseQuery(value) {
-    return typeof value.orderByChild === 'function';
-}
-function isEmptyObject(obj) {
-    if (isNil(obj)) {
-        return false;
-    }
-    return Object.keys(obj).length === 0 && JSON.stringify(obj) === JSON.stringify({});
-}
-function unwrapMapFn(snapshot) {
-    var unwrapped = !isNil(snapshot.val()) ? snapshot.val() : { $value: null };
-    if ((/string|number|boolean/).test(typeof unwrapped)) {
-        unwrapped = {
-            $value: unwrapped
-        };
-    }
-    Object.defineProperty(unwrapped, '$key', {
-        value: snapshot.ref.key,
-        enumerable: false
-    });
-    Object.defineProperty(unwrapped, '$exists', {
-        value: function () {
-            return snapshot.exists();
-        },
-        enumerable: false
-    });
-    return unwrapped;
-}
-function stripTrailingSlash(value) {
-    if (value.substring(value.length - 1, value.length) === '/') {
-        return value.substring(0, value.length - 1);
-    }
-    else {
-        return value;
-    }
-}
-function getAbsUrl(root, url) {
-    if (!(/^[a-z]+:\/\/.*/.test(url))) {
-        url = root + '/' + stripLeadingSlash(url);
-    }
-    return url;
-}
-function stripLeadingSlash(value) {
-    if (value.substring(0, 1) === '/') {
-        return value.substring(1, value.length);
-    }
-    else {
-        return value;
-    }
-}
-function isAbsoluteUrl(url) {
-    return REGEX_ABSOLUTE_URL.test(url);
-}
-function getRef(app, pathRef) {
-    if (isFirebaseRef(pathRef)) {
-        return pathRef;
-    }
-    var path = pathRef;
-    if (isAbsoluteUrl(pathRef)) {
-        return app.database().refFromURL(path);
-    }
-    return app.database().ref(path);
-}
-var ZoneScheduler = (function () {
-    function ZoneScheduler(zone) {
-        this.zone = zone;
-    }
-    ZoneScheduler.prototype.schedule = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        return this.zone.run(function () { return __WEBPACK_IMPORTED_MODULE_0_rxjs_scheduler_queue__["queue"].schedule.apply(__WEBPACK_IMPORTED_MODULE_0_rxjs_scheduler_queue__["queue"], args); });
-    };
-    return ZoneScheduler;
-}());
-
-//# sourceMappingURL=utils.js.map
+//# sourceMappingURL=public_api.js.map
 
 /***/ }),
 
@@ -7699,8 +7588,8 @@ function toComment(sourceMap) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -7715,20 +7604,20 @@ var _firebase_app = __webpack_require__("../../../../firebase/app/firebase_app.j
 
 // Export a single instance of firebase app
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 // Import the needed shims
 var firebase = (0, _firebase_app.createFirebaseNamespace)();
 // Import the createFirebaseNamespace function
@@ -7743,8 +7632,8 @@ module.exports = exports['default'];
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -7761,7 +7650,7 @@ function patchCapture(captureFake) {
     captureStackTrace = captureFake;
     return result;
 }
-var FirebaseError = function () {
+var FirebaseError = /** @class */function () {
     function FirebaseError(code, message) {
         this.code = code;
         this.message = message;
@@ -7789,7 +7678,7 @@ exports.FirebaseError = FirebaseError;
 FirebaseError.prototype = Object.create(Error.prototype);
 FirebaseError.prototype.constructor = FirebaseError;
 FirebaseError.prototype.name = ERROR_NAME;
-var ErrorFactory = function () {
+var ErrorFactory = /** @class */function () {
     function ErrorFactory(service, serviceName, errors) {
         this.service = service;
         this.serviceName = serviceName;
@@ -7838,8 +7727,8 @@ exports.ErrorFactory = ErrorFactory;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -7858,20 +7747,20 @@ var _promise = __webpack_require__("../../../../firebase/utils/promise.js");
 var _deep_copy = __webpack_require__("../../../../firebase/utils/deep_copy.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var contains = function contains(obj, key) {
     return Object.prototype.hasOwnProperty.call(obj, key);
 };
@@ -7883,7 +7772,7 @@ var tokenListeners = [];
  * Global context object for a collection of services using
  * a shared authentication state.
  */
-var FirebaseAppImpl = function () {
+var FirebaseAppImpl = /** @class */function () {
     function FirebaseAppImpl(options, name, firebase_) {
         this.firebase_ = firebase_;
         this.isDeleted_ = false;
@@ -8039,7 +7928,7 @@ function createFirebaseNamespace() {
         app: app,
         apps: null,
         Promise: _promise.PromiseImpl,
-        SDK_VERSION: '4.2.0',
+        SDK_VERSION: '4.5.0',
         INTERNAL: {
             registerService: registerService,
             createFirebaseNamespace: createFirebaseNamespace,
@@ -8224,8 +8113,8 @@ var appErrors = new _errors.ErrorFactory('app', 'Firebase', errors);
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -8257,7 +8146,7 @@ function createSubscribe(executor, onNoObservers) {
  * Implement fan-out for any number of Observers attached via a subscribe
  * function.
  */
-var ObserverProxy = function () {
+var ObserverProxy = /** @class */function () {
     /**
      * @param executor Function which can make calls to a single Observer
      *     as a proxy.
@@ -8454,8 +8343,8 @@ function noop() {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/
 
 ---
@@ -8518,8 +8407,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function registerDatabase(instance) {
     // Register the Database Service with the 'firebase' namespace.
-    var namespace = instance.INTERNAL.registerService('database', function (app) {
-        return _RepoManager.RepoManager.getInstance().databaseFromApp(app);
+    var namespace = instance.INTERNAL.registerService('database', function (app, unused, url) {
+        return _RepoManager.RepoManager.getInstance().databaseFromApp(app, url);
     },
     // firebase.database namespace properties
     {
@@ -8530,25 +8419,25 @@ function registerDatabase(instance) {
         INTERNAL: INTERNAL,
         ServerValue: _Database.Database.ServerValue,
         TEST_ACCESS: TEST_ACCESS
-    });
+    }, null, true);
     if ((0, _environment.isNodeSdk)()) {
         module.exports = namespace;
     }
 } /**
-  * Copyright 2017 Google Inc.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  *   http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  */
+   * Copyright 2017 Google Inc.
+   *
+   * Licensed under the Apache License, Version 2.0 (the "License");
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *   http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an "AS IS" BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 
 registerDatabase(_app2.default);
 //# sourceMappingURL=database.js.map
@@ -8560,8 +8449,8 @@ registerDatabase(_app2.default);
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -8584,21 +8473,21 @@ var _PriorityIndex = __webpack_require__("../../../../firebase/database/core/sna
  * surfaces the public methods (val, forEach, etc.) we want to expose.
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var DataSnapshot = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var DataSnapshot = /** @class */function () {
     /**
      * @param {!Node} node_ A SnapshotNode to wrap.
      * @param {!Reference} ref_ The ref of the location this snapshot came from.
@@ -8749,8 +8638,8 @@ exports.DataSnapshot = DataSnapshot;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -8782,7 +8671,7 @@ var _validation2 = __webpack_require__("../../../../firebase/database/core/util/
  * Class representing a firebase database.
  * @implements {FirebaseService}
  */
-var Database = function () {
+var Database = /** @class */function () {
     /**
      * The constructor should not be called by users of our public API.
      * @param {!Repo} repo_
@@ -8875,7 +8764,7 @@ var Database = function () {
       */
 exports.Database = Database;
 
-var DatabaseInternals = function () {
+var DatabaseInternals = /** @class */function () {
     /** @param {!Database} database */
     function DatabaseInternals(database) {
         this.database = database;
@@ -8902,8 +8791,8 @@ exports.DatabaseInternals = DatabaseInternals;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -8914,20 +8803,20 @@ Object.defineProperty(exports, "__esModule", {
 exports.Query = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
@@ -8959,7 +8848,7 @@ var __referenceConstructor;
  *
  * Since every Firebase reference is a query, Firebase inherits from this object.
  */
-var Query = function () {
+var Query = /** @class */function () {
     function Query(repo, path, queryParams_, orderByCalled_) {
         this.repo = repo;
         this.path = path;
@@ -9407,8 +9296,8 @@ exports.Query = Query;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -9443,20 +9332,20 @@ var _promise = __webpack_require__("../../../../firebase/utils/promise.js");
 var _SyncPoint = __webpack_require__("../../../../firebase/database/core/SyncPoint.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __extends = undefined && undefined.__extends || function () {
     var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
         d.__proto__ = b;
@@ -9474,7 +9363,7 @@ var __extends = undefined && undefined.__extends || function () {
     };
 }();
 
-var Reference = function (_super) {
+var Reference = /** @class */function (_super) {
     __extends(Reference, _super);
     /**
      * Call options:
@@ -9734,8 +9623,8 @@ _SyncPoint.SyncPoint.__referenceConstructor = Reference;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -9747,7 +9636,7 @@ exports.TransactionResult = undefined;
 
 var _validation = __webpack_require__("../../../../firebase/utils/validation.js");
 
-var TransactionResult = function () {
+var TransactionResult = /** @class */function () {
     /**
      * A type for the resolve value of Firebase.transaction.
      * @constructor
@@ -9767,20 +9656,20 @@ var TransactionResult = function () {
     };
     return TransactionResult;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.TransactionResult = TransactionResult;
 //# sourceMappingURL=TransactionResult.js.map
 
@@ -9791,8 +9680,8 @@ exports.TransactionResult = TransactionResult;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -9814,20 +9703,20 @@ var _BrowserPollConnection = __webpack_require__("../../../../firebase/database/
  * @const
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var forceLongPolling = exports.forceLongPolling = function forceLongPolling() {
     _WebSocketConnection.WebSocketConnection.forceDisallow();
     _BrowserPollConnection.BrowserPollConnection.forceAllow();
@@ -9863,8 +9752,8 @@ var interceptServerData = exports.interceptServerData = function interceptServer
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -9886,21 +9775,21 @@ var _promise = __webpack_require__("../../../../firebase/utils/promise.js");
  * @constructor
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var OnDisconnect = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var OnDisconnect = /** @class */function () {
     /**
      * @param {!Repo} repo_
      * @param {!Path} path_
@@ -9996,8 +9885,8 @@ exports.OnDisconnect = OnDisconnect;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -10016,20 +9905,20 @@ var _RepoManager = __webpack_require__("../../../../firebase/database/core/RepoM
 var _Connection = __webpack_require__("../../../../firebase/database/realtime/Connection.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var DataConnection = exports.DataConnection = _PersistentConnection.PersistentConnection;
 /**
  * @param {!string} pathString
@@ -10098,8 +9987,8 @@ var forceRestClient = exports.forceRestClient = function forceRestClient(_forceR
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -10114,7 +10003,7 @@ var _util = __webpack_require__("../../../../firebase/database/core/util/util.js
 /**
  * Abstraction around FirebaseApp's token fetching capabilities.
  */
-var AuthTokenProvider = function () {
+var AuthTokenProvider = /** @class */function () {
     /**
      * @param {!FirebaseApp} app_
      */
@@ -10160,20 +10049,20 @@ var AuthTokenProvider = function () {
     };
     return AuthTokenProvider;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.AuthTokenProvider = AuthTokenProvider;
 //# sourceMappingURL=AuthTokenProvider.js.map
 
@@ -10184,8 +10073,8 @@ exports.AuthTokenProvider = AuthTokenProvider;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -10217,21 +10106,21 @@ var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
  * @param {!ImmutableTree.<!Node>} writeTree
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var CompoundWrite = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var CompoundWrite = /** @class */function () {
     function CompoundWrite(writeTree_) {
         this.writeTree_ = writeTree_;
     }
@@ -10412,8 +10301,8 @@ exports.CompoundWrite = CompoundWrite;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -10456,20 +10345,20 @@ var _ServerActions = __webpack_require__("../../../../firebase/database/core/Ser
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __extends = undefined && undefined.__extends || function () {
     var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
         d.__proto__ = b;
@@ -10501,7 +10390,7 @@ var INVALID_AUTH_TOKEN_THRESHOLD = 3;
  * NOTE: All JSON objects sent to the realtime connection must have property names enclosed
  * in quotes to make sure the closure compiler does not minify them.
  */
-var PersistentConnection = function (_super) {
+var PersistentConnection = /** @class */function (_super) {
     __extends(PersistentConnection, _super);
     /**
      * @implements {ServerActions}
@@ -10650,7 +10539,7 @@ var PersistentConnection = function (_super) {
             if (Array.isArray(warnings) && ~warnings.indexOf('no_index')) {
                 var indexSpec = '".indexOn": "' + query.getQueryParams().getIndex().toString() + '"';
                 var indexPath = query.path.toString();
-                (0, _util.warn)('Using an unspecified index. Consider adding ' + indexSpec + ' at ' + indexPath + ' to your security rules for better performance');
+                (0, _util.warn)("Using an unspecified index. Your data will be downloaded and " + ("filtered on the client. Consider adding " + indexSpec + " at ") + (indexPath + " to your security rules for better performance."));
             }
         }
     };
@@ -11067,7 +10956,7 @@ var PersistentConnection = function (_super) {
     PersistentConnection.prototype.cancelSentTransactions_ = function () {
         for (var i = 0; i < this.outstandingPuts_.length; i++) {
             var put = this.outstandingPuts_[i];
-            if (put && 'h' in put.request && put.queued) {
+            if (put && /*hash*/'h' in put.request && put.queued) {
                 if (put.onComplete) put.onComplete('disconnect');
                 delete this.outstandingPuts_[i];
                 this.outstandingPutCount_--;
@@ -11212,8 +11101,8 @@ exports.PersistentConnection = PersistentConnection;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -11236,20 +11125,20 @@ var _util2 = __webpack_require__("../../../../firebase/utils/util.js");
 var _ServerActions = __webpack_require__("../../../../firebase/database/core/ServerActions.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __extends = undefined && undefined.__extends || function () {
     var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
         d.__proto__ = b;
@@ -11272,7 +11161,7 @@ var __extends = undefined && undefined.__extends || function () {
  * This is mostly useful for compatibility with crawlers, where we don't want to spin up a full
  * persistent connection (using WebSockets or long-polling)
  */
-var ReadonlyRestClient = function (_super) {
+var ReadonlyRestClient = /** @class */function (_super) {
     __extends(ReadonlyRestClient, _super);
     /**
      * @param {!RepoInfo} repoInfo_ Data about the namespace we are connecting to
@@ -11414,8 +11303,8 @@ exports.ReadonlyRestClient = ReadonlyRestClient;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -11426,20 +11315,20 @@ Object.defineProperty(exports, "__esModule", {
 exports.Repo = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 var _ServerValues = __webpack_require__("../../../../firebase/database/core/util/ServerValues.js");
@@ -11480,7 +11369,7 @@ var INTERRUPT_REASON = 'repo_interrupt';
 /**
  * A connection to a single data repository.
  */
-var Repo = function () {
+var Repo = /** @class */function () {
     /**
      * @param {!RepoInfo} repoInfo_
      * @param {boolean} forceRestClient
@@ -11966,8 +11855,8 @@ exports.Repo = Repo;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -11978,20 +11867,20 @@ Object.defineProperty(exports, "__esModule", {
 exports.RepoInfo = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
@@ -12007,7 +11896,7 @@ var _Constants = __webpack_require__("../../../../firebase/database/realtime/Con
  *
  * @constructor
  */
-var RepoInfo = function () {
+var RepoInfo = /** @class */function () {
     /**
      * @param {string} host Hostname portion of the url for the repo
      * @param {boolean} secure Whether or not this repo is accessed over ssl
@@ -12097,8 +11986,8 @@ exports.RepoInfo = RepoInfo;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -12122,29 +12011,29 @@ __webpack_require__("../../../../firebase/database/core/Repo_transaction.js");
 
 /** @const {string} */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var DATABASE_URL_OPTION = 'databaseURL';
 var _staticInstance;
 /**
  * Creates and caches Repo instances.
  */
-var RepoManager = function () {
+var RepoManager = /** @class */function () {
     function RepoManager() {
         /**
-         * @private {!Object.<string, !Repo>}
+         * @private {!Object.<string, Object<string, !fb.core.Repo>>}
          */
         this.repos_ = {};
         /**
@@ -12161,13 +12050,17 @@ var RepoManager = function () {
     };
     // TODO(koss): Remove these functions unless used in tests?
     RepoManager.prototype.interrupt = function () {
-        for (var repo in this.repos_) {
-            this.repos_[repo].interrupt();
+        for (var appName in this.repos_) {
+            for (var dbUrl in this.repos_[appName]) {
+                this.repos_[appName][dbUrl].interrupt();
+            }
         }
     };
     RepoManager.prototype.resume = function () {
-        for (var repo in this.repos_) {
-            this.repos_[repo].resume();
+        for (var appName in this.repos_) {
+            for (var dbUrl in this.repos_[appName]) {
+                this.repos_[appName][dbUrl].resume();
+            }
         }
     };
     /**
@@ -12176,8 +12069,8 @@ var RepoManager = function () {
      * @param {!FirebaseApp} app
      * @return {!Database}
      */
-    RepoManager.prototype.databaseFromApp = function (app) {
-        var dbUrl = app.options[DATABASE_URL_OPTION];
+    RepoManager.prototype.databaseFromApp = function (app, url) {
+        var dbUrl = url || app.options[DATABASE_URL_OPTION];
         if (dbUrl === undefined) {
             (0, _util.fatal)("Can't determine Firebase Database URL.  Be sure to include " + DATABASE_URL_OPTION + ' option when calling firebase.intializeApp().');
         }
@@ -12196,12 +12089,13 @@ var RepoManager = function () {
      * @param {!Repo} repo
      */
     RepoManager.prototype.deleteRepo = function (repo) {
+        var appRepos = (0, _obj.safeGet)(this.repos_, repo.app.name);
         // This should never happen...
-        if ((0, _obj.safeGet)(this.repos_, repo.app.name) !== repo) {
-            (0, _util.fatal)('Database ' + repo.app.name + ' has already been deleted.');
+        if (!appRepos || (0, _obj.safeGet)(appRepos, repo.repoInfo_.toURLString()) !== repo) {
+            (0, _util.fatal)("Database " + repo.app.name + "(" + repo.repoInfo_ + ") has already been deleted.");
         }
         repo.interrupt();
-        delete this.repos_[repo.app.name];
+        delete appRepos[repo.repoInfo_.toURLString()];
     };
     /**
      * Ensures a repo doesn't already exist and then creates one using the
@@ -12212,12 +12106,17 @@ var RepoManager = function () {
      * @return {!Repo} The Repo object for the specified server / repoName.
      */
     RepoManager.prototype.createRepo = function (repoInfo, app) {
-        var repo = (0, _obj.safeGet)(this.repos_, app.name);
+        var appRepos = (0, _obj.safeGet)(this.repos_, app.name);
+        if (!appRepos) {
+            appRepos = {};
+            this.repos_[app.name] = appRepos;
+        }
+        var repo = (0, _obj.safeGet)(appRepos, repoInfo.toURLString());
         if (repo) {
-            (0, _util.fatal)('FIREBASE INTERNAL ERROR: Database initialized multiple times.');
+            (0, _util.fatal)('Database initialized multiple times. Please make sure the format of the database URL matches with each database() call.');
         }
         repo = new _Repo.Repo(repoInfo, this.useRestClient_, app);
-        this.repos_[app.name] = repo;
+        appRepos[repoInfo.toURLString()] = repo;
         return repo;
     };
     /**
@@ -12239,8 +12138,8 @@ exports.RepoManager = RepoManager;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -12251,20 +12150,20 @@ Object.defineProperty(exports, "__esModule", {
 exports.TransactionStatus = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
@@ -12817,8 +12716,8 @@ _Repo.Repo.prototype.abortTransactionsOnNode_ = function (node) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -12827,27 +12726,27 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * Interface defining the set of actions that can be performed against the Firebase server
  * (basically corresponds to our wire protocol).
  *
  * @interface
  */
-var ServerActions = function () {
+var ServerActions = /** @class */function () {
   function ServerActions() {}
   /**
    * @param {string} pathString
@@ -12901,8 +12800,8 @@ exports.ServerActions = ServerActions;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -12919,7 +12818,7 @@ var _ChildrenNode = __webpack_require__("../../../../firebase/database/core/snap
  *
  * @constructor
  */
-var SnapshotHolder = function () {
+var SnapshotHolder = /** @class */function () {
     function SnapshotHolder() {
         this.rootNode_ = _ChildrenNode.ChildrenNode.EMPTY_NODE;
     }
@@ -12931,20 +12830,20 @@ var SnapshotHolder = function () {
     };
     return SnapshotHolder;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.SnapshotHolder = SnapshotHolder;
 //# sourceMappingURL=SnapshotHolder.js.map
 
@@ -12955,8 +12854,8 @@ exports.SnapshotHolder = SnapshotHolder;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -12977,7 +12876,7 @@ var _CountedSet = __webpack_require__("../../../../firebase/database/core/util/C
  *
  * @constructor
  */
-var SparseSnapshotTree = function () {
+var SparseSnapshotTree = /** @class */function () {
     function SparseSnapshotTree() {
         /**
          * @private
@@ -13114,20 +13013,20 @@ var SparseSnapshotTree = function () {
     };
     return SparseSnapshotTree;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.SparseSnapshotTree = SparseSnapshotTree;
 //# sourceMappingURL=SparseSnapshotTree.js.map
 
@@ -13138,8 +13037,8 @@ exports.SparseSnapshotTree = SparseSnapshotTree;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -13162,20 +13061,20 @@ var _ViewCache = __webpack_require__("../../../../firebase/database/core/view/Vi
 var _View = __webpack_require__("../../../../firebase/database/core/view/View.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __referenceConstructor;
 /**
  * SyncPoint represents a single location in a SyncTree with 1 or more event registrations, meaning we need to
@@ -13187,7 +13086,7 @@ var __referenceConstructor;
  *  - Proxying user / server operations to the views as appropriate (i.e. applyServerOverwrite,
  *    applyUserOverwrite, etc.)
  */
-var SyncPoint = function () {
+var SyncPoint = /** @class */function () {
     function SyncPoint() {
         /**
          * The Views being tracked at this location in the tree, stored as a map where the key is a
@@ -13393,8 +13292,8 @@ exports.SyncPoint = SyncPoint;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -13452,7 +13351,7 @@ var _WriteTree = __webpack_require__("../../../../firebase/database/core/WriteTr
  *
  * @constructor
  */
-var SyncTree = function () {
+var SyncTree = /** @class */function () {
     /**
      * @param {!ListenProvider} listenProvider_ Used by SyncTree to start / stop listening
      *   to server data.
@@ -13846,7 +13745,8 @@ var SyncTree = function () {
             // We treat queries that load all data as default queries
             // Cast is necessary because ref() technically returns Firebase which is actually fb.api.Firebase which inherits
             // from Query
-            return query.getRef();
+            return (/** @type {!Query} */query.getRef()
+            );
         } else {
             return query;
         }
@@ -14084,20 +13984,20 @@ var SyncTree = function () {
     SyncTree.nextQueryTag_ = 1;
     return SyncTree;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.SyncTree = SyncTree;
 //# sourceMappingURL=SyncTree.js.map
 
@@ -14108,8 +14008,8 @@ exports.SyncTree = SyncTree;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -14139,21 +14039,21 @@ var _ChildrenNode = __webpack_require__("../../../../firebase/database/core/snap
  * @constructor
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var WriteTree = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var WriteTree = /** @class */function () {
     function WriteTree() {
         /**
          * A tree tracking the result of applying all visible writes.  This does not include transactions with
@@ -14614,7 +14514,7 @@ exports.WriteTree = WriteTree;
  * @constructor
  */
 
-var WriteTreeRef = function () {
+var WriteTreeRef = /** @class */function () {
     /**
      * @param {!Path} path
      * @param {!WriteTree} writeTree
@@ -14725,8 +14625,8 @@ exports.WriteTreeRef = WriteTreeRef;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -14742,7 +14642,7 @@ var _Path = __webpack_require__("../../../../firebase/database/core/util/Path.js
 
 var _Operation = __webpack_require__("../../../../firebase/database/core/operation/Operation.js");
 
-var AckUserWrite = function () {
+var AckUserWrite = /** @class */function () {
     /**
      *
      * @param {!Path} path
@@ -14779,20 +14679,20 @@ var AckUserWrite = function () {
     };
     return AckUserWrite;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.AckUserWrite = AckUserWrite;
 //# sourceMappingURL=AckUserWrite.js.map
 
@@ -14803,8 +14703,8 @@ exports.AckUserWrite = AckUserWrite;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -14825,21 +14725,21 @@ var _Operation = __webpack_require__("../../../../firebase/database/core/operati
  * @implements {Operation}
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var ListenComplete = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var ListenComplete = /** @class */function () {
     function ListenComplete(source, path) {
         this.source = source;
         this.path = path;
@@ -14865,8 +14765,8 @@ exports.ListenComplete = ListenComplete;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -14892,21 +14792,21 @@ var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
  * @implements {Operation}
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var Merge = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var Merge = /** @class */function () {
     function Merge(
     /**@inheritDoc */source,
     /**@inheritDoc */path,
@@ -14956,8 +14856,8 @@ exports.Merge = Merge;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -14974,20 +14874,20 @@ var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
  * @enum
  */
 var OperationType = exports.OperationType = undefined; /**
-                                                       * Copyright 2017 Google Inc.
-                                                       *
-                                                       * Licensed under the Apache License, Version 2.0 (the "License");
-                                                       * you may not use this file except in compliance with the License.
-                                                       * You may obtain a copy of the License at
-                                                       *
-                                                       *   http://www.apache.org/licenses/LICENSE-2.0
-                                                       *
-                                                       * Unless required by applicable law or agreed to in writing, software
-                                                       * distributed under the License is distributed on an "AS IS" BASIS,
-                                                       * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                       * See the License for the specific language governing permissions and
-                                                       * limitations under the License.
-                                                       */
+                                                        * Copyright 2017 Google Inc.
+                                                        *
+                                                        * Licensed under the Apache License, Version 2.0 (the "License");
+                                                        * you may not use this file except in compliance with the License.
+                                                        * You may obtain a copy of the License at
+                                                        *
+                                                        *   http://www.apache.org/licenses/LICENSE-2.0
+                                                        *
+                                                        * Unless required by applicable law or agreed to in writing, software
+                                                        * distributed under the License is distributed on an "AS IS" BASIS,
+                                                        * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                        * See the License for the specific language governing permissions and
+                                                        * limitations under the License.
+                                                        */
 
 (function (OperationType) {
   OperationType[OperationType["OVERWRITE"] = 0] = "OVERWRITE";
@@ -15002,7 +14902,7 @@ var OperationType = exports.OperationType = undefined; /**
  * @param {boolean} tagged
  * @constructor
  */
-var OperationSource = function () {
+var OperationSource = /** @class */function () {
   function OperationSource(fromUser, fromServer, queryId, tagged) {
     this.fromUser = fromUser;
     this.fromServer = fromServer;
@@ -15045,8 +14945,8 @@ exports.OperationSource = OperationSource;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -15068,21 +14968,21 @@ var _Path = __webpack_require__("../../../../firebase/database/core/util/Path.js
  * @implements {Operation}
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var Overwrite = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var Overwrite = /** @class */function () {
     function Overwrite(source, path, snap) {
         this.source = source;
         this.path = path;
@@ -15109,8 +15009,8 @@ exports.Overwrite = Overwrite;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -15141,20 +15041,20 @@ var _LeafNode = __webpack_require__("../../../../firebase/database/core/snap/Lea
 var _comparators = __webpack_require__("../../../../firebase/database/core/snap/comparators.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __extends = undefined && undefined.__extends || function () {
     var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
         d.__proto__ = b;
@@ -15182,7 +15082,7 @@ var EMPTY_NODE;
  * @constructor
  * @implements {Node}
  */
-var ChildrenNode = function () {
+var ChildrenNode = /** @class */function () {
     /**
      *
      * @param {!SortedMap.<string, !Node>} children_ List of children
@@ -15559,7 +15459,7 @@ exports.ChildrenNode = ChildrenNode;
  * @private
  */
 
-var MaxNode = function (_super) {
+var MaxNode = /** @class */function (_super) {
     __extends(MaxNode, _super);
     function MaxNode() {
         return _super.call(this, new _SortedMap.SortedMap(_comparators.NAME_COMPARATOR), ChildrenNode.EMPTY_NODE, _IndexMap.IndexMap.Default) || this;
@@ -15618,8 +15518,8 @@ _LeafNode.LeafNode.__childrenNodeConstructor = ChildrenNode;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -15642,20 +15542,20 @@ var _PriorityIndex = __webpack_require__("../../../../firebase/database/core/sna
 var _KeyIndex = __webpack_require__("../../../../firebase/database/core/snap/indexes/KeyIndex.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var _defaultIndexMap;
 var fallbackObject = {};
 /**
@@ -15664,7 +15564,7 @@ var fallbackObject = {};
  * @param {Object.<string, Index>} indexSet
  * @constructor
  */
-var IndexMap = function () {
+var IndexMap = /** @class */function () {
     function IndexMap(indexes_, indexSet_) {
         this.indexes_ = indexes_;
         this.indexSet_ = indexSet_;
@@ -15811,8 +15711,8 @@ exports.IndexMap = IndexMap;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -15823,20 +15723,20 @@ Object.defineProperty(exports, "__esModule", {
 exports.LeafNode = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
@@ -15851,7 +15751,7 @@ var __childrenNodeConstructor;
  * implements Node and stores the value of the node (a string,
  * number, or boolean) accessible via getValue().
  */
-var LeafNode = function () {
+var LeafNode = /** @class */function () {
     /**
      * @implements {Node}
      * @param {!(string|number|boolean|Object)} value_ The value to store in this leaf node.
@@ -16077,30 +15977,30 @@ exports.LeafNode = LeafNode;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
 
 Object.defineProperty(exports, "__esModule", {
-    value: true
+  value: true
 });
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  *
  * @param {!string} name
@@ -16108,21 +16008,21 @@ Object.defineProperty(exports, "__esModule", {
  * @constructor
  * @struct
  */
-var NamedNode = function () {
-    function NamedNode(name, node) {
-        this.name = name;
-        this.node = node;
-    }
-    /**
-     *
-     * @param {!string} name
-     * @param {!Node} node
-     * @return {NamedNode}
-     */
-    NamedNode.Wrap = function (name, node) {
-        return new NamedNode(name, node);
-    };
-    return NamedNode;
+var NamedNode = /** @class */function () {
+  function NamedNode(name, node) {
+    this.name = name;
+    this.node = node;
+  }
+  /**
+   *
+   * @param {!string} name
+   * @param {!Node} node
+   * @return {NamedNode}
+   */
+  NamedNode.Wrap = function (name, node) {
+    return new NamedNode(name, node);
+  };
+  return NamedNode;
 }();
 exports.NamedNode = NamedNode;
 //# sourceMappingURL=Node.js.map
@@ -16134,8 +16034,8 @@ exports.NamedNode = NamedNode;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -16148,25 +16048,25 @@ exports.buildChildSet = undefined;
 var _SortedMap = __webpack_require__("../../../../firebase/database/core/util/SortedMap.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var LOG_2 = Math.log(2);
 /**
  * @constructor
  */
-var Base12Num = function () {
+var Base12Num = /** @class */function () {
     /**
      * @param {number} length
      */
@@ -16278,8 +16178,8 @@ var buildChildSet = exports.buildChildSet = function buildChildSet(childList, cm
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -16295,20 +16195,20 @@ var _util = __webpack_require__("../../../../firebase/database/core/util/util.js
 function NAME_ONLY_COMPARATOR(left, right) {
     return (0, _util.nameCompare)(left.name, right.name);
 } /**
-  * Copyright 2017 Google Inc.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  *   http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  */
+   * Copyright 2017 Google Inc.
+   *
+   * Licensed under the Apache License, Version 2.0 (the "License");
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *   http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an "AS IS" BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 function NAME_COMPARATOR(left, right) {
     return (0, _util.nameCompare)(left, right);
 }
@@ -16321,8 +16221,8 @@ function NAME_COMPARATOR(left, right) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -16341,21 +16241,21 @@ var _util = __webpack_require__("../../../../firebase/database/core/util/util.js
  * @constructor
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var Index = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var Index = /** @class */function () {
   function Index() {}
   /**
    * @return {function(!NamedNode, !NamedNode):number} A standalone comparison function for
@@ -16396,8 +16296,8 @@ exports.Index = Index;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -16416,20 +16316,20 @@ var _util = __webpack_require__("../../../../firebase/database/core/util/util.js
 var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __extends = undefined && undefined.__extends || function () {
     var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
         d.__proto__ = b;
@@ -16448,7 +16348,7 @@ var __extends = undefined && undefined.__extends || function () {
 }();
 
 var __EMPTY_NODE;
-var KeyIndex = function (_super) {
+var KeyIndex = /** @class */function (_super) {
     __extends(KeyIndex, _super);
     function KeyIndex() {
         return _super !== null && _super.apply(this, arguments) || this;
@@ -16526,8 +16426,8 @@ var KEY_INDEX = exports.KEY_INDEX = new KeyIndex();
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -16550,20 +16450,20 @@ var _Node = __webpack_require__("../../../../firebase/database/core/snap/Node.js
 var _nodeFromJSON = __webpack_require__("../../../../firebase/database/core/snap/nodeFromJSON.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __extends = undefined && undefined.__extends || function () {
     var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
         d.__proto__ = b;
@@ -16586,7 +16486,7 @@ var __extends = undefined && undefined.__extends || function () {
  * @constructor
  * @extends {Index}
  */
-var PathIndex = function (_super) {
+var PathIndex = /** @class */function (_super) {
     __extends(PathIndex, _super);
     function PathIndex(indexPath_) {
         var _this = _super.call(this) || this;
@@ -16654,8 +16554,8 @@ exports.PathIndex = PathIndex;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -16676,20 +16576,20 @@ var _Node = __webpack_require__("../../../../firebase/database/core/snap/Node.js
 var _LeafNode = __webpack_require__("../../../../firebase/database/core/snap/LeafNode.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __extends = undefined && undefined.__extends || function () {
     var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
         d.__proto__ = b;
@@ -16720,7 +16620,7 @@ function setMaxNode(val) {
  * @extends {Index}
  * @private
  */
-var PriorityIndex = function (_super) {
+var PriorityIndex = /** @class */function (_super) {
     __extends(PriorityIndex, _super);
     function PriorityIndex() {
         return _super !== null && _super.apply(this, arguments) || this;
@@ -16790,8 +16690,8 @@ var PRIORITY_INDEX = exports.PRIORITY_INDEX = new PriorityIndex();
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -16810,20 +16710,20 @@ var _util = __webpack_require__("../../../../firebase/database/core/util/util.js
 var _nodeFromJSON = __webpack_require__("../../../../firebase/database/core/snap/nodeFromJSON.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __extends = undefined && undefined.__extends || function () {
     var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
         d.__proto__ = b;
@@ -16846,7 +16746,7 @@ var __extends = undefined && undefined.__extends || function () {
  * @extends {Index}
  * @private
  */
-var ValueIndex = function (_super) {
+var ValueIndex = /** @class */function (_super) {
     __extends(ValueIndex, _super);
     function ValueIndex() {
         return _super !== null && _super.apply(this, arguments) || this;
@@ -16914,8 +16814,8 @@ var VALUE_INDEX = exports.VALUE_INDEX = new ValueIndex();
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -16925,20 +16825,20 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 exports.nodeFromJSON = nodeFromJSON;
@@ -17039,8 +16939,8 @@ function nodeFromJSON(json, priority) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -17051,20 +16951,20 @@ Object.defineProperty(exports, "__esModule", {
 exports.validatePriorityNode = exports.priorityHashText = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 exports.setMaxNode = setMaxNode;
@@ -17110,8 +17010,8 @@ var validatePriorityNode = exports.validatePriorityNode = function validatePrior
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -17131,21 +17031,21 @@ var _obj = __webpack_require__("../../../../firebase/utils/obj.js");
  * @constructor
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var StatsCollection = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var StatsCollection = /** @class */function () {
     function StatsCollection() {
         this.counters_ = {};
     }
@@ -17171,8 +17071,8 @@ exports.StatsCollection = StatsCollection;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -17190,7 +17090,7 @@ var _obj = __webpack_require__("../../../../firebase/utils/obj.js");
  * @param collection_ The collection to "listen" to.
  * @constructor
  */
-var StatsListener = function () {
+var StatsListener = /** @class */function () {
     function StatsListener(collection_) {
         this.collection_ = collection_;
         this.last_ = null;
@@ -17208,20 +17108,20 @@ var StatsListener = function () {
     };
     return StatsListener;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.StatsListener = StatsListener;
 //# sourceMappingURL=StatsListener.js.map
 
@@ -17232,8 +17132,8 @@ exports.StatsListener = StatsListener;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -17245,7 +17145,7 @@ exports.StatsManager = undefined;
 
 var _StatsCollection = __webpack_require__("../../../../firebase/database/core/stats/StatsCollection.js");
 
-var StatsManager = function () {
+var StatsManager = /** @class */function () {
     function StatsManager() {}
     StatsManager.getCollection = function (repoInfo) {
         var hashString = repoInfo.toString();
@@ -17265,20 +17165,20 @@ var StatsManager = function () {
     StatsManager.reporters_ = {};
     return StatsManager;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.StatsManager = StatsManager;
 //# sourceMappingURL=StatsManager.js.map
 
@@ -17289,8 +17189,8 @@ exports.StatsManager = StatsManager;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -17310,20 +17210,20 @@ var _StatsListener = __webpack_require__("../../../../firebase/database/core/sta
 // happen on page load, we try to report our first set of stats pretty quickly, but we wait at least 10
 // seconds to try to ensure the Firebase connection is established / settled.
 var FIRST_STATS_MIN_TIME = 10 * 1000; /**
-                                      * Copyright 2017 Google Inc.
-                                      *
-                                      * Licensed under the Apache License, Version 2.0 (the "License");
-                                      * you may not use this file except in compliance with the License.
-                                      * You may obtain a copy of the License at
-                                      *
-                                      *   http://www.apache.org/licenses/LICENSE-2.0
-                                      *
-                                      * Unless required by applicable law or agreed to in writing, software
-                                      * distributed under the License is distributed on an "AS IS" BASIS,
-                                      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                      * See the License for the specific language governing permissions and
-                                      * limitations under the License.
-                                      */
+                                       * Copyright 2017 Google Inc.
+                                       *
+                                       * Licensed under the Apache License, Version 2.0 (the "License");
+                                       * you may not use this file except in compliance with the License.
+                                       * You may obtain a copy of the License at
+                                       *
+                                       *   http://www.apache.org/licenses/LICENSE-2.0
+                                       *
+                                       * Unless required by applicable law or agreed to in writing, software
+                                       * distributed under the License is distributed on an "AS IS" BASIS,
+                                       * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                       * See the License for the specific language governing permissions and
+                                       * limitations under the License.
+                                       */
 
 var FIRST_STATS_MAX_TIME = 30 * 1000;
 // We'll continue to report stats on average every 5 minutes.
@@ -17331,7 +17231,7 @@ var REPORT_STATS_INTERVAL = 5 * 60 * 1000;
 /**
  * @constructor
  */
-var StatsReporter = function () {
+var StatsReporter = /** @class */function () {
     /**
      * @param collection
      * @param server_
@@ -17375,8 +17275,8 @@ exports.StatsReporter = StatsReporter;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -17398,7 +17298,7 @@ var _json = __webpack_require__("../../../../firebase/utils/json.js");
  *
  * @constructor
  */
-var DOMStorageWrapper = function () {
+var DOMStorageWrapper = /** @class */function () {
     /**
      * @param {Storage} domStorage_ The underlying storage object (e.g. localStorage or sessionStorage)
      */
@@ -17448,20 +17348,20 @@ var DOMStorageWrapper = function () {
     };
     return DOMStorageWrapper;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.DOMStorageWrapper = DOMStorageWrapper;
 //# sourceMappingURL=DOMStorageWrapper.js.map
 
@@ -17472,8 +17372,8 @@ exports.DOMStorageWrapper = DOMStorageWrapper;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -17491,7 +17391,7 @@ var _obj = __webpack_require__("../../../../firebase/utils/obj.js");
  *
  * @constructor
  */
-var MemoryStorage = function () {
+var MemoryStorage = /** @class */function () {
     function MemoryStorage() {
         this.cache_ = {};
         this.isInMemoryStorage = true;
@@ -17514,20 +17414,20 @@ var MemoryStorage = function () {
     };
     return MemoryStorage;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.MemoryStorage = MemoryStorage;
 //# sourceMappingURL=MemoryStorage.js.map
 
@@ -17538,8 +17438,8 @@ exports.MemoryStorage = MemoryStorage;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -17554,29 +17454,29 @@ var _DOMStorageWrapper = __webpack_require__("../../../../firebase/database/core
 var _MemoryStorage = __webpack_require__("../../../../firebase/database/core/storage/MemoryStorage.js");
 
 /**
-* Helper to create a DOMStorageWrapper or else fall back to MemoryStorage.
-* TODO: Once MemoryStorage and DOMStorageWrapper have a shared interface this method annotation should change
-* to reflect this type
-*
-* @param {string} domStorageName Name of the underlying storage object
-*   (e.g. 'localStorage' or 'sessionStorage').
-* @return {?} Turning off type information until a common interface is defined.
-*/
+ * Helper to create a DOMStorageWrapper or else fall back to MemoryStorage.
+ * TODO: Once MemoryStorage and DOMStorageWrapper have a shared interface this method annotation should change
+ * to reflect this type
+ *
+ * @param {string} domStorageName Name of the underlying storage object
+ *   (e.g. 'localStorage' or 'sessionStorage').
+ * @return {?} Turning off type information until a common interface is defined.
+ */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var createStoragefor = function createStoragefor(domStorageName) {
     try {
         // NOTE: just accessing "localStorage" or "window['localStorage']" may throw a security exception,
@@ -17606,8 +17506,8 @@ var SessionStorage = exports.SessionStorage = createStoragefor('sessionStorage')
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -17624,7 +17524,7 @@ var _obj = __webpack_require__("../../../../firebase/utils/obj.js");
  *
  * @template K, V
  */
-var CountedSet = function () {
+var CountedSet = /** @class */function () {
     function CountedSet() {
         this.set = {};
     }
@@ -17696,20 +17596,20 @@ var CountedSet = function () {
     };
     return CountedSet;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.CountedSet = CountedSet;
 //# sourceMappingURL=CountedSet.js.map
 
@@ -17720,8 +17620,8 @@ exports.CountedSet = CountedSet;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -17737,7 +17637,7 @@ var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
  * Base class to be used if you want to emit events. Call the constructor with
  * the set of allowed event names.
  */
-var EventEmitter = function () {
+var EventEmitter = /** @class */function () {
     /**
      * @param {!Array.<string>} allowedEvents_
      */
@@ -17790,20 +17690,20 @@ var EventEmitter = function () {
     };
     return EventEmitter;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.EventEmitter = EventEmitter;
 //# sourceMappingURL=EventEmitter.js.map
 
@@ -17814,8 +17714,8 @@ exports.EventEmitter = EventEmitter;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -17834,20 +17734,20 @@ var _util = __webpack_require__("../../../../firebase/database/core/util/util.js
 var _obj = __webpack_require__("../../../../firebase/utils/obj.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var emptyChildrenSingleton;
 /**
  * Singleton empty children collection.
@@ -17864,7 +17764,7 @@ var EmptyChildren = function EmptyChildren() {
 /**
  * A tree with immutable elements.
  */
-var ImmutableTree = function () {
+var ImmutableTree = /** @class */function () {
     /**
      * @template T
      * @param {?T} value
@@ -18174,8 +18074,8 @@ exports.ImmutableTree = ImmutableTree;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -18244,20 +18144,20 @@ var nextPushId = exports.nextPushId = function () {
         return id;
     };
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 //# sourceMappingURL=NextPushId.js.map
 
 
@@ -18267,8 +18167,8 @@ var nextPushId = exports.nextPushId = function () {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -18285,20 +18185,20 @@ var _EventEmitter = __webpack_require__("../../../../firebase/database/core/util
 var _environment = __webpack_require__("../../../../firebase/utils/environment.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __extends = undefined && undefined.__extends || function () {
     var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
         d.__proto__ = b;
@@ -18325,7 +18225,7 @@ var __extends = undefined && undefined.__extends || function () {
  *
  * @extends {EventEmitter}
  */
-var OnlineMonitor = function (_super) {
+var OnlineMonitor = /** @class */function (_super) {
     __extends(OnlineMonitor, _super);
     function OnlineMonitor() {
         var _this = _super.call(this, ['online']) || this;
@@ -18379,8 +18279,8 @@ exports.OnlineMonitor = OnlineMonitor;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -18400,21 +18300,21 @@ var _utf = __webpack_require__("../../../../firebase/utils/utf8.js");
  * it.
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var Path = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var Path = /** @class */function () {
     /**
      * @param {string|Array.<string>} pathOrString Path string to parse,
      *      or another path, or the raw tokens array
@@ -18620,7 +18520,7 @@ exports.Path = Path;
  * The definition of a path always begins with '/'.
  */
 
-var ValidationPath = function () {
+var ValidationPath = /** @class */function () {
     /**
      * @param {!Path} path Initial Path.
      * @param {string} errorPrefix_ Prefix for any error messages.
@@ -18701,8 +18601,8 @@ exports.ValidationPath = ValidationPath;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -18713,20 +18613,20 @@ Object.defineProperty(exports, "__esModule", {
 exports.resolveDeferredValueSnapshot = exports.resolveDeferredValueTree = exports.resolveDeferredValue = exports.generateWithValues = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
@@ -18824,8 +18724,8 @@ var resolveDeferredValueSnapshot = exports.resolveDeferredValueSnapshot = functi
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -18834,24 +18734,24 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * An iterator over an LLRBNode.
  */
-var SortedMapIterator = function () {
+var SortedMapIterator = /** @class */function () {
     /**
      * @template K, V, T
      * @param {LLRBNode|LLRBEmptyNode} node Node to iterate.
@@ -18937,7 +18837,7 @@ exports.SortedMapIterator = SortedMapIterator;
  * Represents a node in a Left-leaning Red-Black tree.
  */
 
-var LLRBNode = function () {
+var LLRBNode = /** @class */function () {
     /**
      * @template K, V
      * @param {!K} key Key associated with this node.
@@ -19197,7 +19097,7 @@ exports.LLRBNode = LLRBNode;
  * Represents an empty node (a leaf node in the Red-Black Tree).
  */
 
-var LLRBEmptyNode = function () {
+var LLRBEmptyNode = /** @class */function () {
     function LLRBEmptyNode() {}
     /**
      * Returns a copy of the current node.
@@ -19296,7 +19196,7 @@ exports.LLRBEmptyNode = LLRBEmptyNode;
  * tree.
  */
 
-var SortedMap = function () {
+var SortedMap = /** @class */function () {
     /**
      * @template K, V
      * @param {function(K, K):number} comparator_ Key comparator.
@@ -19464,8 +19364,8 @@ exports.SortedMap = SortedMap;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -19484,7 +19384,7 @@ var _obj = __webpack_require__("../../../../firebase/utils/obj.js");
 /**
  * Node in a Tree.
  */
-var TreeNode = function () {
+var TreeNode = /** @class */function () {
     function TreeNode() {
         // TODO: Consider making accessors that create children and value lazily or
         // separate Internal / Leaf 'types'.
@@ -19494,20 +19394,20 @@ var TreeNode = function () {
     }
     return TreeNode;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.TreeNode = TreeNode;
 /**
  * A light-weight tree, traversable by path.  Nodes can have both values and children.
@@ -19515,7 +19415,7 @@ exports.TreeNode = TreeNode;
  * children.
  */
 
-var Tree = function () {
+var Tree = /** @class */function () {
     /**
      * @template T
      * @param {string=} name_ Optional name of the node.
@@ -19708,8 +19608,8 @@ exports.Tree = Tree;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -19724,20 +19624,20 @@ var _EventEmitter = __webpack_require__("../../../../firebase/database/core/util
 var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __extends = undefined && undefined.__extends || function () {
     var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
         d.__proto__ = b;
@@ -19758,7 +19658,7 @@ var __extends = undefined && undefined.__extends || function () {
 /**
  * @extends {EventEmitter}
  */
-var VisibilityMonitor = function (_super) {
+var VisibilityMonitor = /** @class */function (_super) {
     __extends(VisibilityMonitor, _super);
     function VisibilityMonitor() {
         var _this = _super.call(this, ['visible']) || this;
@@ -19819,8 +19719,8 @@ exports.VisibilityMonitor = VisibilityMonitor;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -19860,20 +19760,20 @@ function decodePath(pathString) {
  * @return {{repoInfo: !RepoInfo, path: !Path}}
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var parseRepoInfo = exports.parseRepoInfo = function parseRepoInfo(dataURL) {
     var parsedUrl = parseURL(dataURL),
         namespace = parsedUrl.subdomain;
@@ -19957,8 +19857,8 @@ var parseURL = exports.parseURL = function parseURL(dataURL) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -19969,20 +19869,20 @@ Object.defineProperty(exports, "__esModule", {
 exports.setTimeoutNonBlocking = exports.exportPropGetter = exports.beingCrawled = exports.callUserCallback = exports.exceptionGuard = exports.tryParseInt = exports.INTEGER_REGEXP_ = exports.errorForServerCode = exports.isWindowsStoreApp = exports.isChromeExtensionContentScript = exports.doubleToIEEE754String = exports.bindCallback = exports.each = exports.splitStringBySize = exports.ObjectToUniqueKey = exports.requireKey = exports.stringCompare = exports.nameCompare = exports.MAX_NAME = exports.MIN_NAME = exports.executeWhenDOMReady = exports.isInvalidJSONNumber = exports.warnAboutUnsupportedMethod = exports.warnIfPageIsSecure = exports.warn = exports.fatal = exports.error = exports.logWrapper = exports.log = exports.enableLogging = exports.logger = exports.sha1 = exports.base64Decode = exports.base64Encode = exports.LUIDGenerator = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 exports.setBufferImpl = setBufferImpl;
@@ -20217,7 +20117,8 @@ var warnAboutUnsupportedMethod = exports.warnAboutUnsupportedMethod = function w
  * @return {boolean}
  */
 var isInvalidJSONNumber = exports.isInvalidJSONNumber = function isInvalidJSONNumber(data) {
-    return typeof data === 'number' && (data != data || data == Number.POSITIVE_INFINITY || data == Number.NEGATIVE_INFINITY);
+    return typeof data === 'number' && (data != data || // NaN
+    data == Number.POSITIVE_INFINITY || data == Number.NEGATIVE_INFINITY);
 };
 /**
  * @param {function()} fn
@@ -20610,8 +20511,8 @@ var setTimeoutNonBlocking = exports.setTimeoutNonBlocking = function setTimeoutN
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -20622,20 +20523,20 @@ Object.defineProperty(exports, "__esModule", {
 exports.validateObjectContainsKey = exports.validateObject = exports.validateString = exports.validateBoolean = exports.validateCredential = exports.validateUrl = exports.validateWritablePath = exports.validateRootPathString = exports.validatePathString = exports.validateKey = exports.validateEventType = exports.validatePriority = exports.validateFirebaseMergeDataArg = exports.validateFirebaseMergePaths = exports.validateFirebaseData = exports.validateFirebaseDataArg = exports.isValidPriority = exports.isValidRootPathString = exports.isValidPathString = exports.isValidKey = exports.MAX_LEAF_SIZE_ = exports.INVALID_PATH_REGEX_ = exports.INVALID_KEY_REGEX_ = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 var _Path = __webpack_require__("../../../../firebase/database/core/util/Path.js");
@@ -20913,86 +20814,86 @@ var validateObjectContainsKey = exports.validateObjectContainsKey = function val
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
 
 Object.defineProperty(exports, "__esModule", {
-    value: true
+  value: true
 });
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * A cache node only stores complete children. Additionally it holds a flag whether the node can be considered fully
  * initialized in the sense that we know at one point in time this represented a valid state of the world, e.g.
  * initialized with data from the server, or a complete overwrite by the client. The filtered flag also tracks
  * whether a node potentially had children removed due to a filter.
  */
-var CacheNode = function () {
-    /**
-     * @param {!Node} node_
-     * @param {boolean} fullyInitialized_
-     * @param {boolean} filtered_
-     */
-    function CacheNode(node_, fullyInitialized_, filtered_) {
-        this.node_ = node_;
-        this.fullyInitialized_ = fullyInitialized_;
-        this.filtered_ = filtered_;
+var CacheNode = /** @class */function () {
+  /**
+   * @param {!Node} node_
+   * @param {boolean} fullyInitialized_
+   * @param {boolean} filtered_
+   */
+  function CacheNode(node_, fullyInitialized_, filtered_) {
+    this.node_ = node_;
+    this.fullyInitialized_ = fullyInitialized_;
+    this.filtered_ = filtered_;
+  }
+  /**
+   * Returns whether this node was fully initialized with either server data or a complete overwrite by the client
+   * @return {boolean}
+   */
+  CacheNode.prototype.isFullyInitialized = function () {
+    return this.fullyInitialized_;
+  };
+  /**
+   * Returns whether this node is potentially missing children due to a filter applied to the node
+   * @return {boolean}
+   */
+  CacheNode.prototype.isFiltered = function () {
+    return this.filtered_;
+  };
+  /**
+   * @param {!Path} path
+   * @return {boolean}
+   */
+  CacheNode.prototype.isCompleteForPath = function (path) {
+    if (path.isEmpty()) {
+      return this.isFullyInitialized() && !this.filtered_;
     }
-    /**
-     * Returns whether this node was fully initialized with either server data or a complete overwrite by the client
-     * @return {boolean}
-     */
-    CacheNode.prototype.isFullyInitialized = function () {
-        return this.fullyInitialized_;
-    };
-    /**
-     * Returns whether this node is potentially missing children due to a filter applied to the node
-     * @return {boolean}
-     */
-    CacheNode.prototype.isFiltered = function () {
-        return this.filtered_;
-    };
-    /**
-     * @param {!Path} path
-     * @return {boolean}
-     */
-    CacheNode.prototype.isCompleteForPath = function (path) {
-        if (path.isEmpty()) {
-            return this.isFullyInitialized() && !this.filtered_;
-        }
-        var childKey = path.getFront();
-        return this.isCompleteForChild(childKey);
-    };
-    /**
-     * @param {!string} key
-     * @return {boolean}
-     */
-    CacheNode.prototype.isCompleteForChild = function (key) {
-        return this.isFullyInitialized() && !this.filtered_ || this.node_.hasChild(key);
-    };
-    /**
-     * @return {!Node}
-     */
-    CacheNode.prototype.getNode = function () {
-        return this.node_;
-    };
-    return CacheNode;
+    var childKey = path.getFront();
+    return this.isCompleteForChild(childKey);
+  };
+  /**
+   * @param {!string} key
+   * @return {boolean}
+   */
+  CacheNode.prototype.isCompleteForChild = function (key) {
+    return this.isFullyInitialized() && !this.filtered_ || this.node_.hasChild(key);
+  };
+  /**
+   * @return {!Node}
+   */
+  CacheNode.prototype.getNode = function () {
+    return this.node_;
+  };
+  return CacheNode;
 }();
 exports.CacheNode = CacheNode;
 //# sourceMappingURL=CacheNode.js.map
@@ -21004,30 +20905,30 @@ exports.CacheNode = CacheNode;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
 
 Object.defineProperty(exports, "__esModule", {
-    value: true
+  value: true
 });
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * @constructor
  * @struct
@@ -21037,66 +20938,66 @@ Object.defineProperty(exports, "__esModule", {
  * @param {Node=} oldSnap Used for intermediate processing of child changed events
  * @param {string=} prevName The name for the previous child, if applicable
  */
-var Change = function () {
-    function Change(type, snapshotNode, childName, oldSnap, prevName) {
-        this.type = type;
-        this.snapshotNode = snapshotNode;
-        this.childName = childName;
-        this.oldSnap = oldSnap;
-        this.prevName = prevName;
-    }
-    /**
-     * @param {!Node} snapshot
-     * @return {!Change}
-     */
-    Change.valueChange = function (snapshot) {
-        return new Change(Change.VALUE, snapshot);
-    };
-    /**
-     * @param {string} childKey
-     * @param {!Node} snapshot
-     * @return {!Change}
-     */
-    Change.childAddedChange = function (childKey, snapshot) {
-        return new Change(Change.CHILD_ADDED, snapshot, childKey);
-    };
-    /**
-     * @param {string} childKey
-     * @param {!Node} snapshot
-     * @return {!Change}
-     */
-    Change.childRemovedChange = function (childKey, snapshot) {
-        return new Change(Change.CHILD_REMOVED, snapshot, childKey);
-    };
-    /**
-     * @param {string} childKey
-     * @param {!Node} newSnapshot
-     * @param {!Node} oldSnapshot
-     * @return {!Change}
-     */
-    Change.childChangedChange = function (childKey, newSnapshot, oldSnapshot) {
-        return new Change(Change.CHILD_CHANGED, newSnapshot, childKey, oldSnapshot);
-    };
-    /**
-     * @param {string} childKey
-     * @param {!Node} snapshot
-     * @return {!Change}
-     */
-    Change.childMovedChange = function (childKey, snapshot) {
-        return new Change(Change.CHILD_MOVED, snapshot, childKey);
-    };
-    //event types
-    /** Event type for a child added */
-    Change.CHILD_ADDED = 'child_added';
-    /** Event type for a child removed */
-    Change.CHILD_REMOVED = 'child_removed';
-    /** Event type for a child changed */
-    Change.CHILD_CHANGED = 'child_changed';
-    /** Event type for a child moved */
-    Change.CHILD_MOVED = 'child_moved';
-    /** Event type for a value change */
-    Change.VALUE = 'value';
-    return Change;
+var Change = /** @class */function () {
+  function Change(type, snapshotNode, childName, oldSnap, prevName) {
+    this.type = type;
+    this.snapshotNode = snapshotNode;
+    this.childName = childName;
+    this.oldSnap = oldSnap;
+    this.prevName = prevName;
+  }
+  /**
+   * @param {!Node} snapshot
+   * @return {!Change}
+   */
+  Change.valueChange = function (snapshot) {
+    return new Change(Change.VALUE, snapshot);
+  };
+  /**
+   * @param {string} childKey
+   * @param {!Node} snapshot
+   * @return {!Change}
+   */
+  Change.childAddedChange = function (childKey, snapshot) {
+    return new Change(Change.CHILD_ADDED, snapshot, childKey);
+  };
+  /**
+   * @param {string} childKey
+   * @param {!Node} snapshot
+   * @return {!Change}
+   */
+  Change.childRemovedChange = function (childKey, snapshot) {
+    return new Change(Change.CHILD_REMOVED, snapshot, childKey);
+  };
+  /**
+   * @param {string} childKey
+   * @param {!Node} newSnapshot
+   * @param {!Node} oldSnapshot
+   * @return {!Change}
+   */
+  Change.childChangedChange = function (childKey, newSnapshot, oldSnapshot) {
+    return new Change(Change.CHILD_CHANGED, newSnapshot, childKey, oldSnapshot);
+  };
+  /**
+   * @param {string} childKey
+   * @param {!Node} snapshot
+   * @return {!Change}
+   */
+  Change.childMovedChange = function (childKey, snapshot) {
+    return new Change(Change.CHILD_MOVED, snapshot, childKey);
+  };
+  //event types
+  /** Event type for a child added */
+  Change.CHILD_ADDED = 'child_added';
+  /** Event type for a child removed */
+  Change.CHILD_REMOVED = 'child_removed';
+  /** Event type for a child changed */
+  Change.CHILD_CHANGED = 'child_changed';
+  /** Event type for a child moved */
+  Change.CHILD_MOVED = 'child_moved';
+  /** Event type for a value change */
+  Change.VALUE = 'value';
+  return Change;
 }();
 exports.Change = Change;
 //# sourceMappingURL=Change.js.map
@@ -21108,8 +21009,8 @@ exports.Change = Change;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -21128,7 +21029,7 @@ var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
 /**
  * @constructor
  */
-var ChildChangeAccumulator = function () {
+var ChildChangeAccumulator = /** @class */function () {
     function ChildChangeAccumulator() {
         this.changeMap_ = {};
     }
@@ -21168,20 +21069,20 @@ var ChildChangeAccumulator = function () {
     };
     return ChildChangeAccumulator;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.ChildChangeAccumulator = ChildChangeAccumulator;
 //# sourceMappingURL=ChildChangeAccumulator.js.map
 
@@ -21192,8 +21093,8 @@ exports.ChildChangeAccumulator = ChildChangeAccumulator;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -21212,7 +21113,7 @@ var _CacheNode = __webpack_require__("../../../../firebase/database/core/view/Ca
  * @constructor
  * @implements CompleteChildSource
  */
-var NoCompleteChildSource_ = function () {
+var NoCompleteChildSource_ = /** @class */function () {
     function NoCompleteChildSource_() {}
     /**
      * @inheritDoc
@@ -21228,20 +21129,20 @@ var NoCompleteChildSource_ = function () {
     };
     return NoCompleteChildSource_;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.NoCompleteChildSource_ = NoCompleteChildSource_;
 /**
  * Singleton instance.
@@ -21257,7 +21158,7 @@ var NO_COMPLETE_CHILD_SOURCE = exports.NO_COMPLETE_CHILD_SOURCE = new NoComplete
  *
  * @implements CompleteChildSource
  */
-var WriteTreeCompleteChildSource = function () {
+var WriteTreeCompleteChildSource = /** @class */function () {
     /**
      * @param {!WriteTreeRef} writes_
      * @param {!ViewCache} viewCache_
@@ -21307,8 +21208,8 @@ exports.WriteTreeCompleteChildSource = WriteTreeCompleteChildSource;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -21324,7 +21225,7 @@ var _json = __webpack_require__("../../../../firebase/utils/json.js");
  * Encapsulates the data needed to raise an event
  * @implements {Event}
  */
-var DataEvent = function () {
+var DataEvent = /** @class */function () {
     /**
      * @param {!string} eventType One of: value, child_added, child_changed, child_moved, child_removed
      * @param {!EventRegistration} eventRegistration The function to call to with the event data. User provided
@@ -21368,23 +21269,23 @@ var DataEvent = function () {
     };
     return DataEvent;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.DataEvent = DataEvent;
 
-var CancelEvent = function () {
+var CancelEvent = /** @class */function () {
     /**
      * @param {EventRegistration} eventRegistration
      * @param {Error} error
@@ -21431,8 +21332,8 @@ exports.CancelEvent = CancelEvent;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -21455,7 +21356,7 @@ var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
  *
  * @constructor
  */
-var EventGenerator = function () {
+var EventGenerator = /** @class */function () {
     /**
      *
      * @param {!Query} query_
@@ -21555,20 +21456,20 @@ var EventGenerator = function () {
     };
     return EventGenerator;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.EventGenerator = EventGenerator;
 //# sourceMappingURL=EventGenerator.js.map
 
@@ -21579,8 +21480,8 @@ exports.EventGenerator = EventGenerator;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -21606,7 +21507,7 @@ var _util = __webpack_require__("../../../../firebase/database/core/util/util.js
  *
  * @constructor
  */
-var EventQueue = function () {
+var EventQueue = /** @class */function () {
     function EventQueue() {
         /**
          * @private
@@ -21698,27 +21599,27 @@ var EventQueue = function () {
     };
     return EventQueue;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.EventQueue = EventQueue;
 /**
  * @param {!Path} path
  * @constructor
  */
 
-var EventList = function () {
+var EventList = /** @class */function () {
     function EventList(path_) {
         this.path_ = path_;
         /**
@@ -21767,8 +21668,8 @@ exports.EventList = EventList;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -21790,21 +21691,21 @@ var _assert = __webpack_require__("../../../../firebase/utils/assert.js");
  * Represents registration for 'value' events.
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var ValueEventRegistration = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var ValueEventRegistration = /** @class */function () {
     /**
      * @param {?function(!DataSnapshot)} callback_
      * @param {?function(Error)} cancelCallback_
@@ -21889,7 +21790,7 @@ exports.ValueEventRegistration = ValueEventRegistration;
  * @implements {EventRegistration}
  */
 
-var ChildEventRegistration = function () {
+var ChildEventRegistration = /** @class */function () {
     /**
      * @param {?Object.<string, function(!DataSnapshot, ?string=)>} callbacks_
      * @param {?function(Error)} cancelCallback_
@@ -21993,8 +21894,8 @@ exports.ChildEventRegistration = ChildEventRegistration;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -22031,21 +21932,21 @@ var _json = __webpack_require__("../../../../firebase/utils/json.js");
  * @constructor
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var QueryParams = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var QueryParams = /** @class */function () {
     function QueryParams() {
         this.limitSet_ = false;
         this.startSet_ = false;
@@ -22413,8 +22314,8 @@ exports.QueryParams = QueryParams;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -22455,21 +22356,21 @@ var _PriorityIndex = __webpack_require__("../../../../firebase/database/core/sna
  * @constructor
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var View = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var View = /** @class */function () {
     /**
      *
      * @param {!Query} query_
@@ -22640,8 +22541,8 @@ exports.View = View;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -22663,21 +22564,21 @@ var _CacheNode = __webpack_require__("../../../../firebase/database/core/view/Ca
  * @constructor
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var ViewCache = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var ViewCache = /** @class */function () {
   /**
    *
    * @param {!CacheNode} eventCache_
@@ -22750,8 +22651,8 @@ exports.ViewCache = ViewCache;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -22783,7 +22684,7 @@ var _CompleteChildSource = __webpack_require__("../../../../firebase/database/co
  * @constructor
  * @struct
  */
-var ProcessorResult = function () {
+var ProcessorResult = /** @class */function () {
     /**
      * @param {!ViewCache} viewCache
      * @param {!Array.<!Change>} changes
@@ -22794,26 +22695,26 @@ var ProcessorResult = function () {
     }
     return ProcessorResult;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.ProcessorResult = ProcessorResult;
 /**
  * @constructor
  */
 
-var ViewProcessor = function () {
+var ViewProcessor = /** @class */function () {
     /**
      * @param {!NodeFilter} filter_
      */
@@ -23287,8 +23188,8 @@ exports.ViewProcessor = ViewProcessor;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -23314,21 +23215,21 @@ var _PriorityIndex = __webpack_require__("../../../../firebase/database/core/sna
  * @param {!Index} index
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var IndexedFilter = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var IndexedFilter = /** @class */function () {
     function IndexedFilter(index_) {
         this.index_ = index_;
     }
@@ -23434,8 +23335,8 @@ exports.IndexedFilter = IndexedFilter;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -23461,7 +23362,7 @@ var _Change = __webpack_require__("../../../../firebase/database/core/view/Chang
  * @constructor
  * @implements {NodeFilter}
  */
-var LimitedFilter = function () {
+var LimitedFilter = /** @class */function () {
     /**
      * @param {!QueryParams} params
      */
@@ -23665,20 +23566,20 @@ var LimitedFilter = function () {
     };
     return LimitedFilter;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.LimitedFilter = LimitedFilter;
 //# sourceMappingURL=LimitedFilter.js.map
 
@@ -23689,8 +23590,8 @@ exports.LimitedFilter = LimitedFilter;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -23715,21 +23616,21 @@ var _ChildrenNode = __webpack_require__("../../../../firebase/database/core/snap
  * @implements {NodeFilter}
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var RangedFilter = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var RangedFilter = /** @class */function () {
     /**
      * @param {!QueryParams} params
      */
@@ -23849,8 +23750,8 @@ exports.RangedFilter = RangedFilter;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -23876,20 +23777,20 @@ var _environment = __webpack_require__("../../../../firebase/utils/environment.j
 
 // URL query parameters associated with longpolling
 var FIREBASE_LONGPOLL_START_PARAM = exports.FIREBASE_LONGPOLL_START_PARAM = 'start'; /**
-                                                                                     * Copyright 2017 Google Inc.
-                                                                                     *
-                                                                                     * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                     * you may not use this file except in compliance with the License.
-                                                                                     * You may obtain a copy of the License at
-                                                                                     *
-                                                                                     *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                     *
-                                                                                     * Unless required by applicable law or agreed to in writing, software
-                                                                                     * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                     * See the License for the specific language governing permissions and
-                                                                                     * limitations under the License.
-                                                                                     */
+                                                                                      * Copyright 2017 Google Inc.
+                                                                                      *
+                                                                                      * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                      * you may not use this file except in compliance with the License.
+                                                                                      * You may obtain a copy of the License at
+                                                                                      *
+                                                                                      *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                      *
+                                                                                      * Unless required by applicable law or agreed to in writing, software
+                                                                                      * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                      * See the License for the specific language governing permissions and
+                                                                                      * limitations under the License.
+                                                                                      */
 var FIREBASE_LONGPOLL_CLOSE_COMMAND = exports.FIREBASE_LONGPOLL_CLOSE_COMMAND = 'close';
 var FIREBASE_LONGPOLL_COMMAND_CB_NAME = exports.FIREBASE_LONGPOLL_COMMAND_CB_NAME = 'pLPCommand';
 var FIREBASE_LONGPOLL_DATA_CB_NAME = exports.FIREBASE_LONGPOLL_DATA_CB_NAME = 'pRTLPCB';
@@ -23928,7 +23829,7 @@ var LP_CONNECT_TIMEOUT = 30000;
  * @constructor
  * @implements {Transport}
  */
-var BrowserPollConnection = function () {
+var BrowserPollConnection = /** @class */function () {
     /**
      * @param {string} connId An identifier for this connection, used for logging
      * @param {RepoInfo} repoInfo The info for the endpoint to send data to.
@@ -24175,7 +24076,7 @@ exports.BrowserPollConnection = BrowserPollConnection;
  * @constructor
  *********************************************************************************************/
 
-var FirebaseIFrameScriptHolder = function () {
+var FirebaseIFrameScriptHolder = /** @class */function () {
     /**
      * @param commandCB - The callback to be called when control commands are recevied from the server.
      * @param onMessageCB - The callback to be triggered when responses arrive from the server.
@@ -24456,8 +24357,8 @@ exports.FirebaseIFrameScriptHolder = FirebaseIFrameScriptHolder;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -24477,20 +24378,20 @@ var _TransportManager = __webpack_require__("../../../../firebase/database/realt
 
 // Abort upgrade attempt if it takes longer than 60s.
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var UPGRADE_TIMEOUT = 60000;
 // For some transports (WebSockets), we need to "validate" the transport by exchanging a few requests and responses.
 // If we haven't sent enough requests within 5s, we'll start sending noop ping requests.
@@ -24516,7 +24417,7 @@ var SERVER_HELLO = 'h';
  *
  * @constructor
  */
-var Connection = function () {
+var Connection = /** @class */function () {
     /**
      * @param {!string} id - an id for this connection
      * @param {!RepoInfo} repoInfo_ - the info for the endpoint to connect to
@@ -24939,8 +24840,8 @@ exports.Connection = Connection;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -24949,20 +24850,20 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var PROTOCOL_VERSION = exports.PROTOCOL_VERSION = '5';
 var VERSION_PARAM = exports.VERSION_PARAM = 'v';
 var TRANSPORT_SESSION_PARAM = exports.TRANSPORT_SESSION_PARAM = 's';
@@ -24981,8 +24882,8 @@ var LONG_POLLING = exports.LONG_POLLING = 'long_polling';
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -25006,7 +24907,7 @@ var _util = __webpack_require__("../../../../firebase/database/core/util/util.js
  * they are available.
  * @constructor
  */
-var TransportManager = function () {
+var TransportManager = /** @class */function () {
     /**
      * @param {!RepoInfo} repoInfo Metadata around the namespace we're connecting to
      */
@@ -25070,20 +24971,20 @@ var TransportManager = function () {
     };
     return TransportManager;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.TransportManager = TransportManager;
 //# sourceMappingURL=TransportManager.js.map
 
@@ -25094,8 +24995,8 @@ exports.TransportManager = TransportManager;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/* WEBPACK VAR INJECTION */(function(process) {/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -25129,20 +25030,20 @@ var _environment = __webpack_require__("../../../../firebase/utils/environment.j
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var WEBSOCKET_MAX_FRAME_SIZE = 16384; /**
-                                      * Copyright 2017 Google Inc.
-                                      *
-                                      * Licensed under the Apache License, Version 2.0 (the "License");
-                                      * you may not use this file except in compliance with the License.
-                                      * You may obtain a copy of the License at
-                                      *
-                                      *   http://www.apache.org/licenses/LICENSE-2.0
-                                      *
-                                      * Unless required by applicable law or agreed to in writing, software
-                                      * distributed under the License is distributed on an "AS IS" BASIS,
-                                      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                      * See the License for the specific language governing permissions and
-                                      * limitations under the License.
-                                      */
+                                       * Copyright 2017 Google Inc.
+                                       *
+                                       * Licensed under the Apache License, Version 2.0 (the "License");
+                                       * you may not use this file except in compliance with the License.
+                                       * You may obtain a copy of the License at
+                                       *
+                                       *   http://www.apache.org/licenses/LICENSE-2.0
+                                       *
+                                       * Unless required by applicable law or agreed to in writing, software
+                                       * distributed under the License is distributed on an "AS IS" BASIS,
+                                       * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                       * See the License for the specific language governing permissions and
+                                       * limitations under the License.
+                                       */
 
 var WEBSOCKET_KEEPALIVE_INTERVAL = 45000;
 var WebSocketImpl = null;
@@ -25159,7 +25060,7 @@ function setWebSocketImpl(impl) {
  * @constructor
  * @implements {Transport}
  */
-var WebSocketConnection = function () {
+var WebSocketConnection = /** @class */function () {
     /**
      * @param {string} connId identifier for this transport
      * @param {RepoInfo} repoInfo The info for the websocket endpoint.
@@ -25461,8 +25362,8 @@ exports.WebSocketConnection = WebSocketConnection;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -25479,7 +25380,7 @@ var _util = __webpack_require__("../../../../firebase/database/core/util/util.js
  * This class takes data from the server and ensures it gets passed into the callbacks in order.
  * @constructor
  */
-var PacketReceiver = function () {
+var PacketReceiver = /** @class */function () {
     /**
      * @param onMessage_
      */
@@ -25538,20 +25439,20 @@ var PacketReceiver = function () {
     };
     return PacketReceiver;
 }(); /**
-     * Copyright 2017 Google Inc.
-     *
-     * Licensed under the Apache License, Version 2.0 (the "License");
-     * you may not use this file except in compliance with the License.
-     * You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+      * Copyright 2017 Google Inc.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License");
+      * you may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *   http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing, software
+      * distributed under the License is distributed on an "AS IS" BASIS,
+      * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      * See the License for the specific language governing permissions and
+      * limitations under the License.
+      */
 exports.PacketReceiver = PacketReceiver;
 //# sourceMappingURL=PacketReceiver.js.map
 
@@ -25802,8 +25703,8 @@ exports.PacketReceiver = PacketReceiver;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -25816,20 +25717,20 @@ exports.Sha1 = undefined;
 var _hash = __webpack_require__("../../../../firebase/utils/hash.js");
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var __extends = undefined && undefined.__extends || function () {
     var extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
         d.__proto__ = b;
@@ -25871,7 +25772,7 @@ var __extends = undefined && undefined.__extends || function () {
  * @final
  * @struct
  */
-var Sha1 = function (_super) {
+var Sha1 = /** @class */function (_super) {
     __extends(Sha1, _super);
     function Sha1() {
         var _this = _super.call(this) || this;
@@ -26091,14 +25992,14 @@ exports.Sha1 = Sha1;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
 
 Object.defineProperty(exports, "__esModule", {
-    value: true
+  value: true
 });
 exports.assertionError = exports.assert = undefined;
 
@@ -26110,9 +26011,9 @@ var _constants = __webpack_require__("../../../../firebase/utils/constants.js");
  * @param {!string} message The message to display if the check fails
  */
 var assert = exports.assert = function assert(assertion, message) {
-    if (!assertion) {
-        throw assertionError(message);
-    }
+  if (!assertion) {
+    throw assertionError(message);
+  }
 };
 /**
  * Returns an Error object suitable for throwing.
@@ -26120,22 +26021,22 @@ var assert = exports.assert = function assert(assertion, message) {
  * @return {!Error}
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var assertionError = exports.assertionError = function assertionError(message) {
-    return new Error('Firebase Database (' + _constants.CONSTANTS.SDK_VERSION + ') INTERNAL ASSERT FAILED: ' + message);
+  return new Error('Firebase Database (' + _constants.CONSTANTS.SDK_VERSION + ') INTERNAL ASSERT FAILED: ' + message);
 };
 //# sourceMappingURL=assert.js.map
 
@@ -26146,8 +26047,8 @@ var assertionError = exports.assertionError = function assertionError(message) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -26156,20 +26057,20 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * @fileoverview Firebase constants.  Some of these (@defines) can be overridden at compile-time.
  */
@@ -26185,7 +26086,7 @@ var CONSTANTS = exports.CONSTANTS = {
   /**
    * Firebase SDK Version
    */
-  SDK_VERSION: '4.2.0'
+  SDK_VERSION: '4.5.0'
 };
 //# sourceMappingURL=constants.js.map
 
@@ -26196,8 +26097,8 @@ var CONSTANTS = exports.CONSTANTS = {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -26229,20 +26130,20 @@ var stringToByteArray = function stringToByteArray(str) {
  * @return {string} Stringification of the array.
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var byteArrayToString = function byteArrayToString(bytes) {
     var CHUNK_SIZE = 8192;
     // Special-case the simple case for speed's sake.
@@ -26463,8 +26364,8 @@ var base64 = exports.base64 = {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -26476,20 +26377,20 @@ exports.deepCopy = deepCopy;
 exports.deepExtend = deepExtend;
 exports.patchProperty = patchProperty;
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * Do a deep-copy of basic JavaScript Objects or Arrays.
  */
@@ -26552,8 +26453,8 @@ function patchProperty(obj, prop, value) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -26564,20 +26465,20 @@ Object.defineProperty(exports, "__esModule", {
 exports.isNodeSdk = exports.isReactNative = exports.isMobileCordova = exports.getUA = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 var _constants = __webpack_require__("../../../../firebase/utils/constants.js");
@@ -26629,8 +26530,8 @@ var isNodeSdk = exports.isNodeSdk = function isNodeSdk() {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/* WEBPACK VAR INJECTION */(function(global) {/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/* WEBPACK VAR INJECTION */(function(global) {/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -26639,20 +26540,20 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var scope;
 if (typeof global !== 'undefined') {
     scope = global;
@@ -26676,8 +26577,8 @@ var globalScope = exports.globalScope = scope;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -26686,20 +26587,20 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 // Copyright 2011 The Closure Library Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26725,7 +26626,7 @@ Object.defineProperty(exports, "__esModule", {
  * @constructor
  * @struct
  */
-var Hash = function () {
+var Hash = /** @class */function () {
   function Hash() {
     /**
      * The block size for the hasher.
@@ -26745,8 +26646,8 @@ exports.Hash = Hash;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -26755,20 +26656,20 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * Evaluates a JSON string into a javascript object.
  *
@@ -26795,8 +26696,8 @@ var stringify = exports.stringify = function stringify(data) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -26807,20 +26708,20 @@ Object.defineProperty(exports, "__esModule", {
 exports.isAdmin = exports.isValidFormat = exports.issuedAtTime = exports.isValidTimestamp = exports.decode = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                              * Copyright 2017 Google Inc.
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Licensed under the Apache License, Version 2.0 (the "License");
-                                                                                                                                                                                                                                                                              * you may not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                              * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              *   http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                              *
-                                                                                                                                                                                                                                                                              * Unless required by applicable law or agreed to in writing, software
-                                                                                                                                                                                                                                                                              * distributed under the License is distributed on an "AS IS" BASIS,
-                                                                                                                                                                                                                                                                              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-                                                                                                                                                                                                                                                                              * See the License for the specific language governing permissions and
-                                                                                                                                                                                                                                                                              * limitations under the License.
-                                                                                                                                                                                                                                                                              */
+                                                                                                                                                                                                                                                                               * Copyright 2017 Google Inc.
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Licensed under the Apache License, Version 2.0 (the "License");
+                                                                                                                                                                                                                                                                               * you may not use this file except in compliance with the License.
+                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               *   http://www.apache.org/licenses/LICENSE-2.0
+                                                                                                                                                                                                                                                                               *
+                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing, software
+                                                                                                                                                                                                                                                                               * distributed under the License is distributed on an "AS IS" BASIS,
+                                                                                                                                                                                                                                                                               * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                                                                                                                                                                                                                                                                               * See the License for the specific language governing permissions and
+                                                                                                                                                                                                                                                                               * limitations under the License.
+                                                                                                                                                                                                                                                                               */
 
 
 var _util = __webpack_require__("../../../../firebase/database/core/util/util.js");
@@ -26944,8 +26845,8 @@ var isAdmin = exports.isAdmin = function isAdmin(token) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -26957,20 +26858,20 @@ Object.defineProperty(exports, "__esModule", {
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 // See http://www.devthought.com/2012/01/18/an-object-is-not-a-hash/
 var contains = exports.contains = function contains(obj, key) {
     return Object.prototype.hasOwnProperty.call(obj, key);
@@ -27095,8 +26996,8 @@ var every = exports.every = function every(obj, fn) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -27113,21 +27014,21 @@ var PromiseImpl = exports.PromiseImpl = _globalScope.globalScope.Promise || __we
  * A deferred promise implementation.
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-var Deferred = function () {
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var Deferred = /** @class */function () {
     /** @constructor */
     function Deferred() {
         var self = this;
@@ -27197,12 +27098,27 @@ var attachDummyErrorHandler = exports.attachDummyErrorHandler = function attachD
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
 
+/**
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * This is the Array.prototype.findIndex polyfill from MDN
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/findIndex
@@ -27294,8 +27210,8 @@ if (!Array.prototype.find) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -27357,20 +27273,20 @@ var stringToByteArray = exports.stringToByteArray = function stringToByteArray(s
  * @return {number}
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var stringLength = exports.stringLength = function stringLength(str) {
     var p = 0;
     for (var i = 0; i < str.length; i++) {
@@ -27398,8 +27314,8 @@ var stringLength = exports.stringLength = function stringLength(str) {
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -27439,20 +27355,20 @@ var querystring = exports.querystring = function querystring(querystringParams) 
  * @return {!Object}
  */
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 var querystringDecode = exports.querystringDecode = function querystringDecode(querystring) {
     var obj = {};
     var tokens = querystring.replace(/^\?/, '').split('&');
@@ -27473,8 +27389,8 @@ var querystringDecode = exports.querystringDecode = function querystringDecode(q
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*! @license Firebase v4.2.0
-Build: rev-d6b2db4
+/*! @license Firebase v4.5.0
+Build: rev-f49c8b5
 Terms: https://firebase.google.com/terms/ */
 
 
@@ -27487,20 +27403,20 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 exports.errorPrefix = errorPrefix;
 /**
-* Copyright 2017 Google Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * Check to make sure the appropriate number of arguments are provided for a public function.
  * Throws an error if it fails.
@@ -30105,6 +30021,18 @@ function flattenUnsubscriptionErrors(errors) {
 
 /***/ }),
 
+/***/ "../../../../rxjs/add/observable/merge.js":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var Observable_1 = __webpack_require__("../../../../rxjs/Observable.js");
+var merge_1 = __webpack_require__("../../../../rxjs/observable/merge.js");
+Observable_1.Observable.merge = merge_1.merge;
+//# sourceMappingURL=merge.js.map
+
+/***/ }),
+
 /***/ "../../../../rxjs/add/observable/of.js":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -30139,6 +30067,18 @@ var Observable_1 = __webpack_require__("../../../../rxjs/Observable.js");
 var debounceTime_1 = __webpack_require__("../../../../rxjs/operator/debounceTime.js");
 Observable_1.Observable.prototype.debounceTime = debounceTime_1.debounceTime;
 //# sourceMappingURL=debounceTime.js.map
+
+/***/ }),
+
+/***/ "../../../../rxjs/add/operator/delay.js":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var Observable_1 = __webpack_require__("../../../../rxjs/Observable.js");
+var delay_1 = __webpack_require__("../../../../rxjs/operator/delay.js");
+Observable_1.Observable.prototype.delay = delay_1.delay;
+//# sourceMappingURL=delay.js.map
 
 /***/ }),
 
@@ -30203,6 +30143,30 @@ Observable_1.Observable.prototype.merge = merge_1.merge;
 
 /***/ }),
 
+/***/ "../../../../rxjs/add/operator/scan.js":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var Observable_1 = __webpack_require__("../../../../rxjs/Observable.js");
+var scan_1 = __webpack_require__("../../../../rxjs/operator/scan.js");
+Observable_1.Observable.prototype.scan = scan_1.scan;
+//# sourceMappingURL=scan.js.map
+
+/***/ }),
+
+/***/ "../../../../rxjs/add/operator/skipWhile.js":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var Observable_1 = __webpack_require__("../../../../rxjs/Observable.js");
+var skipWhile_1 = __webpack_require__("../../../../rxjs/operator/skipWhile.js");
+Observable_1.Observable.prototype.skipWhile = skipWhile_1.skipWhile;
+//# sourceMappingURL=skipWhile.js.map
+
+/***/ }),
+
 /***/ "../../../../rxjs/add/operator/switchMap.js":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -30224,6 +30188,18 @@ var Observable_1 = __webpack_require__("../../../../rxjs/Observable.js");
 var take_1 = __webpack_require__("../../../../rxjs/operator/take.js");
 Observable_1.Observable.prototype.take = take_1.take;
 //# sourceMappingURL=take.js.map
+
+/***/ }),
+
+/***/ "../../../../rxjs/add/operator/withLatestFrom.js":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var Observable_1 = __webpack_require__("../../../../rxjs/Observable.js");
+var withLatestFrom_1 = __webpack_require__("../../../../rxjs/operator/withLatestFrom.js");
+Observable_1.Observable.prototype.withLatestFrom = withLatestFrom_1.withLatestFrom;
+//# sourceMappingURL=withLatestFrom.js.map
 
 /***/ }),
 
@@ -31134,117 +31110,6 @@ exports.of = ArrayObservable_1.ArrayObservable.of;
 
 /***/ }),
 
-/***/ "../../../../rxjs/operator/auditTime.js":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
-var async_1 = __webpack_require__("../../../../rxjs/scheduler/async.js");
-var Subscriber_1 = __webpack_require__("../../../../rxjs/Subscriber.js");
-/**
- * Ignores source values for `duration` milliseconds, then emits the most recent
- * value from the source Observable, then repeats this process.
- *
- * <span class="informal">When it sees a source values, it ignores that plus
- * the next ones for `duration` milliseconds, and then it emits the most recent
- * value from the source.</span>
- *
- * <img src="./img/auditTime.png" width="100%">
- *
- * `auditTime` is similar to `throttleTime`, but emits the last value from the
- * silenced time window, instead of the first value. `auditTime` emits the most
- * recent value from the source Observable on the output Observable as soon as
- * its internal timer becomes disabled, and ignores source values while the
- * timer is enabled. Initially, the timer is disabled. As soon as the first
- * source value arrives, the timer is enabled. After `duration` milliseconds (or
- * the time unit determined internally by the optional `scheduler`) has passed,
- * the timer is disabled, then the most recent source value is emitted on the
- * output Observable, and this process repeats for the next source value.
- * Optionally takes a {@link IScheduler} for managing timers.
- *
- * @example <caption>Emit clicks at a rate of at most one click per second</caption>
- * var clicks = Rx.Observable.fromEvent(document, 'click');
- * var result = clicks.auditTime(1000);
- * result.subscribe(x => console.log(x));
- *
- * @see {@link audit}
- * @see {@link debounceTime}
- * @see {@link delay}
- * @see {@link sampleTime}
- * @see {@link throttleTime}
- *
- * @param {number} duration Time to wait before emitting the most recent source
- * value, measured in milliseconds or the time unit determined internally
- * by the optional `scheduler`.
- * @param {Scheduler} [scheduler=async] The {@link IScheduler} to use for
- * managing the timers that handle the rate-limiting behavior.
- * @return {Observable<T>} An Observable that performs rate-limiting of
- * emissions from the source Observable.
- * @method auditTime
- * @owner Observable
- */
-function auditTime(duration, scheduler) {
-    if (scheduler === void 0) { scheduler = async_1.async; }
-    return this.lift(new AuditTimeOperator(duration, scheduler));
-}
-exports.auditTime = auditTime;
-var AuditTimeOperator = (function () {
-    function AuditTimeOperator(duration, scheduler) {
-        this.duration = duration;
-        this.scheduler = scheduler;
-    }
-    AuditTimeOperator.prototype.call = function (subscriber, source) {
-        return source.subscribe(new AuditTimeSubscriber(subscriber, this.duration, this.scheduler));
-    };
-    return AuditTimeOperator;
-}());
-/**
- * We need this JSDoc comment for affecting ESDoc.
- * @ignore
- * @extends {Ignored}
- */
-var AuditTimeSubscriber = (function (_super) {
-    __extends(AuditTimeSubscriber, _super);
-    function AuditTimeSubscriber(destination, duration, scheduler) {
-        _super.call(this, destination);
-        this.duration = duration;
-        this.scheduler = scheduler;
-        this.hasValue = false;
-    }
-    AuditTimeSubscriber.prototype._next = function (value) {
-        this.value = value;
-        this.hasValue = true;
-        if (!this.throttled) {
-            this.add(this.throttled = this.scheduler.schedule(dispatchNext, this.duration, this));
-        }
-    };
-    AuditTimeSubscriber.prototype.clearThrottle = function () {
-        var _a = this, value = _a.value, hasValue = _a.hasValue, throttled = _a.throttled;
-        if (throttled) {
-            this.remove(throttled);
-            this.throttled = null;
-            throttled.unsubscribe();
-        }
-        if (hasValue) {
-            this.value = null;
-            this.hasValue = false;
-            this.destination.next(value);
-        }
-    };
-    return AuditTimeSubscriber;
-}(Subscriber_1.Subscriber));
-function dispatchNext(subscriber) {
-    subscriber.clearThrottle();
-}
-//# sourceMappingURL=auditTime.js.map
-
-/***/ }),
-
 /***/ "../../../../rxjs/operator/catch.js":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -31368,165 +31233,6 @@ var CatchSubscriber = (function (_super) {
 
 /***/ }),
 
-/***/ "../../../../rxjs/operator/combineLatest.js":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
-var ArrayObservable_1 = __webpack_require__("../../../../rxjs/observable/ArrayObservable.js");
-var isArray_1 = __webpack_require__("../../../../rxjs/util/isArray.js");
-var OuterSubscriber_1 = __webpack_require__("../../../../rxjs/OuterSubscriber.js");
-var subscribeToResult_1 = __webpack_require__("../../../../rxjs/util/subscribeToResult.js");
-var none = {};
-/* tslint:enable:max-line-length */
-/**
- * Combines multiple Observables to create an Observable whose values are
- * calculated from the latest values of each of its input Observables.
- *
- * <span class="informal">Whenever any input Observable emits a value, it
- * computes a formula using the latest values from all the inputs, then emits
- * the output of that formula.</span>
- *
- * <img src="./img/combineLatest.png" width="100%">
- *
- * `combineLatest` combines the values from this Observable with values from
- * Observables passed as arguments. This is done by subscribing to each
- * Observable, in order, and collecting an array of each of the most recent
- * values any time any of the input Observables emits, then either taking that
- * array and passing it as arguments to an optional `project` function and
- * emitting the return value of that, or just emitting the array of recent
- * values directly if there is no `project` function.
- *
- * @example <caption>Dynamically calculate the Body-Mass Index from an Observable of weight and one for height</caption>
- * var weight = Rx.Observable.of(70, 72, 76, 79, 75);
- * var height = Rx.Observable.of(1.76, 1.77, 1.78);
- * var bmi = weight.combineLatest(height, (w, h) => w / (h * h));
- * bmi.subscribe(x => console.log('BMI is ' + x));
- *
- * // With output to console:
- * // BMI is 24.212293388429753
- * // BMI is 23.93948099205209
- * // BMI is 23.671253629592222
- *
- * @see {@link combineAll}
- * @see {@link merge}
- * @see {@link withLatestFrom}
- *
- * @param {ObservableInput} other An input Observable to combine with the source
- * Observable. More than one input Observables may be given as argument.
- * @param {function} [project] An optional function to project the values from
- * the combined latest values into a new value on the output Observable.
- * @return {Observable} An Observable of projected values from the most recent
- * values from each input Observable, or an array of the most recent values from
- * each input Observable.
- * @method combineLatest
- * @owner Observable
- */
-function combineLatest() {
-    var observables = [];
-    for (var _i = 0; _i < arguments.length; _i++) {
-        observables[_i - 0] = arguments[_i];
-    }
-    var project = null;
-    if (typeof observables[observables.length - 1] === 'function') {
-        project = observables.pop();
-    }
-    // if the first and only other argument besides the resultSelector is an array
-    // assume it's been called with `combineLatest([obs1, obs2, obs3], project)`
-    if (observables.length === 1 && isArray_1.isArray(observables[0])) {
-        observables = observables[0].slice();
-    }
-    observables.unshift(this);
-    return this.lift.call(new ArrayObservable_1.ArrayObservable(observables), new CombineLatestOperator(project));
-}
-exports.combineLatest = combineLatest;
-var CombineLatestOperator = (function () {
-    function CombineLatestOperator(project) {
-        this.project = project;
-    }
-    CombineLatestOperator.prototype.call = function (subscriber, source) {
-        return source.subscribe(new CombineLatestSubscriber(subscriber, this.project));
-    };
-    return CombineLatestOperator;
-}());
-exports.CombineLatestOperator = CombineLatestOperator;
-/**
- * We need this JSDoc comment for affecting ESDoc.
- * @ignore
- * @extends {Ignored}
- */
-var CombineLatestSubscriber = (function (_super) {
-    __extends(CombineLatestSubscriber, _super);
-    function CombineLatestSubscriber(destination, project) {
-        _super.call(this, destination);
-        this.project = project;
-        this.active = 0;
-        this.values = [];
-        this.observables = [];
-    }
-    CombineLatestSubscriber.prototype._next = function (observable) {
-        this.values.push(none);
-        this.observables.push(observable);
-    };
-    CombineLatestSubscriber.prototype._complete = function () {
-        var observables = this.observables;
-        var len = observables.length;
-        if (len === 0) {
-            this.destination.complete();
-        }
-        else {
-            this.active = len;
-            this.toRespond = len;
-            for (var i = 0; i < len; i++) {
-                var observable = observables[i];
-                this.add(subscribeToResult_1.subscribeToResult(this, observable, observable, i));
-            }
-        }
-    };
-    CombineLatestSubscriber.prototype.notifyComplete = function (unused) {
-        if ((this.active -= 1) === 0) {
-            this.destination.complete();
-        }
-    };
-    CombineLatestSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
-        var values = this.values;
-        var oldVal = values[outerIndex];
-        var toRespond = !this.toRespond
-            ? 0
-            : oldVal === none ? --this.toRespond : this.toRespond;
-        values[outerIndex] = innerValue;
-        if (toRespond === 0) {
-            if (this.project) {
-                this._tryProject(values);
-            }
-            else {
-                this.destination.next(values.slice());
-            }
-        }
-    };
-    CombineLatestSubscriber.prototype._tryProject = function (values) {
-        var result;
-        try {
-            result = this.project.apply(this, values);
-        }
-        catch (err) {
-            this.destination.error(err);
-            return;
-        }
-        this.destination.next(result);
-    };
-    return CombineLatestSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
-exports.CombineLatestSubscriber = CombineLatestSubscriber;
-//# sourceMappingURL=combineLatest.js.map
-
-/***/ }),
-
 /***/ "../../../../rxjs/operator/debounceTime.js":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -31647,6 +31353,148 @@ function dispatchNext(subscriber) {
     subscriber.debouncedNext();
 }
 //# sourceMappingURL=debounceTime.js.map
+
+/***/ }),
+
+/***/ "../../../../rxjs/operator/delay.js":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+var async_1 = __webpack_require__("../../../../rxjs/scheduler/async.js");
+var isDate_1 = __webpack_require__("../../../../rxjs/util/isDate.js");
+var Subscriber_1 = __webpack_require__("../../../../rxjs/Subscriber.js");
+var Notification_1 = __webpack_require__("../../../../rxjs/Notification.js");
+/**
+ * Delays the emission of items from the source Observable by a given timeout or
+ * until a given Date.
+ *
+ * <span class="informal">Time shifts each item by some specified amount of
+ * milliseconds.</span>
+ *
+ * <img src="./img/delay.png" width="100%">
+ *
+ * If the delay argument is a Number, this operator time shifts the source
+ * Observable by that amount of time expressed in milliseconds. The relative
+ * time intervals between the values are preserved.
+ *
+ * If the delay argument is a Date, this operator time shifts the start of the
+ * Observable execution until the given date occurs.
+ *
+ * @example <caption>Delay each click by one second</caption>
+ * var clicks = Rx.Observable.fromEvent(document, 'click');
+ * var delayedClicks = clicks.delay(1000); // each click emitted after 1 second
+ * delayedClicks.subscribe(x => console.log(x));
+ *
+ * @example <caption>Delay all clicks until a future date happens</caption>
+ * var clicks = Rx.Observable.fromEvent(document, 'click');
+ * var date = new Date('March 15, 2050 12:00:00'); // in the future
+ * var delayedClicks = clicks.delay(date); // click emitted only after that date
+ * delayedClicks.subscribe(x => console.log(x));
+ *
+ * @see {@link debounceTime}
+ * @see {@link delayWhen}
+ *
+ * @param {number|Date} delay The delay duration in milliseconds (a `number`) or
+ * a `Date` until which the emission of the source items is delayed.
+ * @param {Scheduler} [scheduler=async] The IScheduler to use for
+ * managing the timers that handle the time-shift for each item.
+ * @return {Observable} An Observable that delays the emissions of the source
+ * Observable by the specified timeout or Date.
+ * @method delay
+ * @owner Observable
+ */
+function delay(delay, scheduler) {
+    if (scheduler === void 0) { scheduler = async_1.async; }
+    var absoluteDelay = isDate_1.isDate(delay);
+    var delayFor = absoluteDelay ? (+delay - scheduler.now()) : Math.abs(delay);
+    return this.lift(new DelayOperator(delayFor, scheduler));
+}
+exports.delay = delay;
+var DelayOperator = (function () {
+    function DelayOperator(delay, scheduler) {
+        this.delay = delay;
+        this.scheduler = scheduler;
+    }
+    DelayOperator.prototype.call = function (subscriber, source) {
+        return source.subscribe(new DelaySubscriber(subscriber, this.delay, this.scheduler));
+    };
+    return DelayOperator;
+}());
+/**
+ * We need this JSDoc comment for affecting ESDoc.
+ * @ignore
+ * @extends {Ignored}
+ */
+var DelaySubscriber = (function (_super) {
+    __extends(DelaySubscriber, _super);
+    function DelaySubscriber(destination, delay, scheduler) {
+        _super.call(this, destination);
+        this.delay = delay;
+        this.scheduler = scheduler;
+        this.queue = [];
+        this.active = false;
+        this.errored = false;
+    }
+    DelaySubscriber.dispatch = function (state) {
+        var source = state.source;
+        var queue = source.queue;
+        var scheduler = state.scheduler;
+        var destination = state.destination;
+        while (queue.length > 0 && (queue[0].time - scheduler.now()) <= 0) {
+            queue.shift().notification.observe(destination);
+        }
+        if (queue.length > 0) {
+            var delay_1 = Math.max(0, queue[0].time - scheduler.now());
+            this.schedule(state, delay_1);
+        }
+        else {
+            source.active = false;
+        }
+    };
+    DelaySubscriber.prototype._schedule = function (scheduler) {
+        this.active = true;
+        this.add(scheduler.schedule(DelaySubscriber.dispatch, this.delay, {
+            source: this, destination: this.destination, scheduler: scheduler
+        }));
+    };
+    DelaySubscriber.prototype.scheduleNotification = function (notification) {
+        if (this.errored === true) {
+            return;
+        }
+        var scheduler = this.scheduler;
+        var message = new DelayMessage(scheduler.now() + this.delay, notification);
+        this.queue.push(message);
+        if (this.active === false) {
+            this._schedule(scheduler);
+        }
+    };
+    DelaySubscriber.prototype._next = function (value) {
+        this.scheduleNotification(Notification_1.Notification.createNext(value));
+    };
+    DelaySubscriber.prototype._error = function (err) {
+        this.errored = true;
+        this.queue = [];
+        this.destination.error(err);
+    };
+    DelaySubscriber.prototype._complete = function () {
+        this.scheduleNotification(Notification_1.Notification.createComplete());
+    };
+    return DelaySubscriber;
+}(Subscriber_1.Subscriber));
+var DelayMessage = (function () {
+    function DelayMessage(time, notification) {
+        this.time = time;
+        this.notification = notification;
+    }
+    return DelayMessage;
+}());
+//# sourceMappingURL=delay.js.map
 
 /***/ }),
 
@@ -32710,6 +32558,132 @@ exports.ObserveOnMessage = ObserveOnMessage;
 
 /***/ }),
 
+/***/ "../../../../rxjs/operator/scan.js":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+var Subscriber_1 = __webpack_require__("../../../../rxjs/Subscriber.js");
+/* tslint:enable:max-line-length */
+/**
+ * Applies an accumulator function over the source Observable, and returns each
+ * intermediate result, with an optional seed value.
+ *
+ * <span class="informal">It's like {@link reduce}, but emits the current
+ * accumulation whenever the source emits a value.</span>
+ *
+ * <img src="./img/scan.png" width="100%">
+ *
+ * Combines together all values emitted on the source, using an accumulator
+ * function that knows how to join a new source value into the accumulation from
+ * the past. Is similar to {@link reduce}, but emits the intermediate
+ * accumulations.
+ *
+ * Returns an Observable that applies a specified `accumulator` function to each
+ * item emitted by the source Observable. If a `seed` value is specified, then
+ * that value will be used as the initial value for the accumulator. If no seed
+ * value is specified, the first item of the source is used as the seed.
+ *
+ * @example <caption>Count the number of click events</caption>
+ * var clicks = Rx.Observable.fromEvent(document, 'click');
+ * var ones = clicks.mapTo(1);
+ * var seed = 0;
+ * var count = ones.scan((acc, one) => acc + one, seed);
+ * count.subscribe(x => console.log(x));
+ *
+ * @see {@link expand}
+ * @see {@link mergeScan}
+ * @see {@link reduce}
+ *
+ * @param {function(acc: R, value: T, index: number): R} accumulator
+ * The accumulator function called on each source value.
+ * @param {T|R} [seed] The initial accumulation value.
+ * @return {Observable<R>} An observable of the accumulated values.
+ * @method scan
+ * @owner Observable
+ */
+function scan(accumulator, seed) {
+    var hasSeed = false;
+    // providing a seed of `undefined` *should* be valid and trigger
+    // hasSeed! so don't use `seed !== undefined` checks!
+    // For this reason, we have to check it here at the original call site
+    // otherwise inside Operator/Subscriber we won't know if `undefined`
+    // means they didn't provide anything or if they literally provided `undefined`
+    if (arguments.length >= 2) {
+        hasSeed = true;
+    }
+    return this.lift(new ScanOperator(accumulator, seed, hasSeed));
+}
+exports.scan = scan;
+var ScanOperator = (function () {
+    function ScanOperator(accumulator, seed, hasSeed) {
+        if (hasSeed === void 0) { hasSeed = false; }
+        this.accumulator = accumulator;
+        this.seed = seed;
+        this.hasSeed = hasSeed;
+    }
+    ScanOperator.prototype.call = function (subscriber, source) {
+        return source.subscribe(new ScanSubscriber(subscriber, this.accumulator, this.seed, this.hasSeed));
+    };
+    return ScanOperator;
+}());
+/**
+ * We need this JSDoc comment for affecting ESDoc.
+ * @ignore
+ * @extends {Ignored}
+ */
+var ScanSubscriber = (function (_super) {
+    __extends(ScanSubscriber, _super);
+    function ScanSubscriber(destination, accumulator, _seed, hasSeed) {
+        _super.call(this, destination);
+        this.accumulator = accumulator;
+        this._seed = _seed;
+        this.hasSeed = hasSeed;
+        this.index = 0;
+    }
+    Object.defineProperty(ScanSubscriber.prototype, "seed", {
+        get: function () {
+            return this._seed;
+        },
+        set: function (value) {
+            this.hasSeed = true;
+            this._seed = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    ScanSubscriber.prototype._next = function (value) {
+        if (!this.hasSeed) {
+            this.seed = value;
+            this.destination.next(value);
+        }
+        else {
+            return this._tryNext(value);
+        }
+    };
+    ScanSubscriber.prototype._tryNext = function (value) {
+        var index = this.index++;
+        var result;
+        try {
+            result = this.accumulator(this.seed, value, index);
+        }
+        catch (err) {
+            this.destination.error(err);
+        }
+        this.seed = result;
+        this.destination.next(result);
+    };
+    return ScanSubscriber;
+}(Subscriber_1.Subscriber));
+//# sourceMappingURL=scan.js.map
+
+/***/ }),
+
 /***/ "../../../../rxjs/operator/share.js":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -32738,6 +32712,79 @@ function share() {
 exports.share = share;
 ;
 //# sourceMappingURL=share.js.map
+
+/***/ }),
+
+/***/ "../../../../rxjs/operator/skipWhile.js":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+var Subscriber_1 = __webpack_require__("../../../../rxjs/Subscriber.js");
+/**
+ * Returns an Observable that skips all items emitted by the source Observable as long as a specified condition holds
+ * true, but emits all further source items as soon as the condition becomes false.
+ *
+ * <img src="./img/skipWhile.png" width="100%">
+ *
+ * @param {Function} predicate - A function to test each item emitted from the source Observable.
+ * @return {Observable<T>} An Observable that begins emitting items emitted by the source Observable when the
+ * specified predicate becomes false.
+ * @method skipWhile
+ * @owner Observable
+ */
+function skipWhile(predicate) {
+    return this.lift(new SkipWhileOperator(predicate));
+}
+exports.skipWhile = skipWhile;
+var SkipWhileOperator = (function () {
+    function SkipWhileOperator(predicate) {
+        this.predicate = predicate;
+    }
+    SkipWhileOperator.prototype.call = function (subscriber, source) {
+        return source.subscribe(new SkipWhileSubscriber(subscriber, this.predicate));
+    };
+    return SkipWhileOperator;
+}());
+/**
+ * We need this JSDoc comment for affecting ESDoc.
+ * @ignore
+ * @extends {Ignored}
+ */
+var SkipWhileSubscriber = (function (_super) {
+    __extends(SkipWhileSubscriber, _super);
+    function SkipWhileSubscriber(destination, predicate) {
+        _super.call(this, destination);
+        this.predicate = predicate;
+        this.skipping = true;
+        this.index = 0;
+    }
+    SkipWhileSubscriber.prototype._next = function (value) {
+        var destination = this.destination;
+        if (this.skipping) {
+            this.tryCallPredicate(value);
+        }
+        if (!this.skipping) {
+            destination.next(value);
+        }
+    };
+    SkipWhileSubscriber.prototype.tryCallPredicate = function (value) {
+        try {
+            var result = this.predicate(value, this.index++);
+            this.skipping = Boolean(result);
+        }
+        catch (err) {
+            this.destination.error(err);
+        }
+    };
+    return SkipWhileSubscriber;
+}(Subscriber_1.Subscriber));
+//# sourceMappingURL=skipWhile.js.map
 
 /***/ }),
 
@@ -32981,6 +33028,143 @@ var TakeSubscriber = (function (_super) {
     return TakeSubscriber;
 }(Subscriber_1.Subscriber));
 //# sourceMappingURL=take.js.map
+
+/***/ }),
+
+/***/ "../../../../rxjs/operator/withLatestFrom.js":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+var OuterSubscriber_1 = __webpack_require__("../../../../rxjs/OuterSubscriber.js");
+var subscribeToResult_1 = __webpack_require__("../../../../rxjs/util/subscribeToResult.js");
+/* tslint:enable:max-line-length */
+/**
+ * Combines the source Observable with other Observables to create an Observable
+ * whose values are calculated from the latest values of each, only when the
+ * source emits.
+ *
+ * <span class="informal">Whenever the source Observable emits a value, it
+ * computes a formula using that value plus the latest values from other input
+ * Observables, then emits the output of that formula.</span>
+ *
+ * <img src="./img/withLatestFrom.png" width="100%">
+ *
+ * `withLatestFrom` combines each value from the source Observable (the
+ * instance) with the latest values from the other input Observables only when
+ * the source emits a value, optionally using a `project` function to determine
+ * the value to be emitted on the output Observable. All input Observables must
+ * emit at least one value before the output Observable will emit a value.
+ *
+ * @example <caption>On every click event, emit an array with the latest timer event plus the click event</caption>
+ * var clicks = Rx.Observable.fromEvent(document, 'click');
+ * var timer = Rx.Observable.interval(1000);
+ * var result = clicks.withLatestFrom(timer);
+ * result.subscribe(x => console.log(x));
+ *
+ * @see {@link combineLatest}
+ *
+ * @param {ObservableInput} other An input Observable to combine with the source
+ * Observable. More than one input Observables may be given as argument.
+ * @param {Function} [project] Projection function for combining values
+ * together. Receives all values in order of the Observables passed, where the
+ * first parameter is a value from the source Observable. (e.g.
+ * `a.withLatestFrom(b, c, (a1, b1, c1) => a1 + b1 + c1)`). If this is not
+ * passed, arrays will be emitted on the output Observable.
+ * @return {Observable} An Observable of projected values from the most recent
+ * values from each input Observable, or an array of the most recent values from
+ * each input Observable.
+ * @method withLatestFrom
+ * @owner Observable
+ */
+function withLatestFrom() {
+    var args = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i - 0] = arguments[_i];
+    }
+    var project;
+    if (typeof args[args.length - 1] === 'function') {
+        project = args.pop();
+    }
+    var observables = args;
+    return this.lift(new WithLatestFromOperator(observables, project));
+}
+exports.withLatestFrom = withLatestFrom;
+var WithLatestFromOperator = (function () {
+    function WithLatestFromOperator(observables, project) {
+        this.observables = observables;
+        this.project = project;
+    }
+    WithLatestFromOperator.prototype.call = function (subscriber, source) {
+        return source.subscribe(new WithLatestFromSubscriber(subscriber, this.observables, this.project));
+    };
+    return WithLatestFromOperator;
+}());
+/**
+ * We need this JSDoc comment for affecting ESDoc.
+ * @ignore
+ * @extends {Ignored}
+ */
+var WithLatestFromSubscriber = (function (_super) {
+    __extends(WithLatestFromSubscriber, _super);
+    function WithLatestFromSubscriber(destination, observables, project) {
+        _super.call(this, destination);
+        this.observables = observables;
+        this.project = project;
+        this.toRespond = [];
+        var len = observables.length;
+        this.values = new Array(len);
+        for (var i = 0; i < len; i++) {
+            this.toRespond.push(i);
+        }
+        for (var i = 0; i < len; i++) {
+            var observable = observables[i];
+            this.add(subscribeToResult_1.subscribeToResult(this, observable, observable, i));
+        }
+    }
+    WithLatestFromSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+        this.values[outerIndex] = innerValue;
+        var toRespond = this.toRespond;
+        if (toRespond.length > 0) {
+            var found = toRespond.indexOf(outerIndex);
+            if (found !== -1) {
+                toRespond.splice(found, 1);
+            }
+        }
+    };
+    WithLatestFromSubscriber.prototype.notifyComplete = function () {
+        // noop
+    };
+    WithLatestFromSubscriber.prototype._next = function (value) {
+        if (this.toRespond.length === 0) {
+            var args = [value].concat(this.values);
+            if (this.project) {
+                this._tryProject(args);
+            }
+            else {
+                this.destination.next(args);
+            }
+        }
+    };
+    WithLatestFromSubscriber.prototype._tryProject = function (args) {
+        var result;
+        try {
+            result = this.project.apply(this, args);
+        }
+        catch (err) {
+            this.destination.error(err);
+            return;
+        }
+        this.destination.next(result);
+    };
+    return WithLatestFromSubscriber;
+}(OuterSubscriber_1.OuterSubscriber));
+//# sourceMappingURL=withLatestFrom.js.map
 
 /***/ }),
 
@@ -33710,6 +33894,19 @@ exports.isArrayLike = (function (x) { return x && typeof x.length === 'number'; 
 
 /***/ }),
 
+/***/ "../../../../rxjs/util/isDate.js":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+function isDate(value) {
+    return value instanceof Date && !isNaN(+value);
+}
+exports.isDate = isDate;
+//# sourceMappingURL=isDate.js.map
+
+/***/ }),
+
 /***/ "../../../../rxjs/util/isFunction.js":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -34145,25 +34342,25 @@ module.exports = g;
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return AnimationBuilder; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return AnimationFactory; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return AUTO_STYLE; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AUTO_STYLE; });
 /* unused harmony export animate */
 /* unused harmony export animateChild */
 /* unused harmony export animation */
 /* unused harmony export group */
 /* unused harmony export keyframes */
 /* unused harmony export query */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return sequence; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return sequence; });
 /* unused harmony export stagger */
 /* unused harmony export state */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "h", function() { return style; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return style; });
 /* unused harmony export transition */
 /* unused harmony export trigger */
 /* unused harmony export useAnimation */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return NoopAnimationPlayer; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return AnimationGroupPlayer; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return ɵPRE_STYLE; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return AnimationGroupPlayer; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "h", function() { return ɵPRE_STYLE; });
 /**
- * @license Angular v4.3.4
+ * @license Angular v4.4.4
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -34296,11 +34493,12 @@ var AUTO_STYLE = '*';
  * <div [\@myAnimationTrigger]="myStatusExp">...</div>
  * ```
  *
- * ## Disable Child Animations
+ * ## Disable Animations
  * A special animation control binding called `\@.disabled` can be placed on an element which will
- * then disable animations for any inner animation triggers situated within the element.
+ * then disable animations for any inner animation triggers situated within the element as well as
+ * any animations on the element itself.
  *
- * When true, the `\@.disabled` binding will prevent inner animations from rendering. The example
+ * When true, the `\@.disabled` binding will prevent all animations from rendering. The example
  * below shows how to use this feature:
  *
  * ```ts
@@ -34326,8 +34524,8 @@ var AUTO_STYLE = '*';
  * The `\@childAnimation` trigger will not animate because `\@.disabled` prevents it from happening
  * (when true).
  *
- * Note that `\@.disbled` will only disable inner animations (any animations running on the same
- * element will not be disabled).
+ * Note that `\@.disbled` will only disable all animations (this means any animations running on
+ * the same element will also be disabled).
  *
  * ### Disabling Animations Application-wide
  * When an area of the template is set to have animations disabled, **all** inner components will
@@ -35465,21 +35663,21 @@ var ɵPRE_STYLE = '!';
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_animations__ = __webpack_require__("../../../animations/@angular/animations.es5.js");
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return AnimationDriver; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AnimationDriver; });
 /* unused harmony export ɵAnimation */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return AnimationStyleNormalizer; });
 /* unused harmony export ɵNoopAnimationStyleNormalizer */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return WebAnimationsStyleNormalizer; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return NoopAnimationDriver; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AnimationEngine; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return WebAnimationsStyleNormalizer; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return NoopAnimationDriver; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return AnimationEngine; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return WebAnimationsDriver; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return supportsWebAnimations; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return supportsWebAnimations; });
 /* unused harmony export ɵWebAnimationsPlayer */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_animations__ = __webpack_require__("../../../animations/@angular/animations.es5.js");
 
 /**
- * @license Angular v4.3.4
+ * @license Angular v4.4.4
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -35498,7 +35696,7 @@ function optimizeGroupPlayer(players) {
         case 1:
             return players[0];
         default:
-            return new __WEBPACK_IMPORTED_MODULE_1__angular_animations__["e" /* ɵAnimationGroupPlayer */](players);
+            return new __WEBPACK_IMPORTED_MODULE_1__angular_animations__["g" /* ɵAnimationGroupPlayer */](players);
     }
 }
 function normalizeKeyframes(driver, normalizer, element, keyframes, preStyles, postStyles) {
@@ -35518,10 +35716,10 @@ function normalizeKeyframes(driver, normalizer, element, keyframes, preStyles, p
             if (prop !== 'offset') {
                 normalizedProp = normalizer.normalizePropertyName(normalizedProp, errors);
                 switch (normalizedValue) {
-                    case __WEBPACK_IMPORTED_MODULE_1__angular_animations__["f" /* ɵPRE_STYLE */]:
+                    case __WEBPACK_IMPORTED_MODULE_1__angular_animations__["h" /* ɵPRE_STYLE */]:
                         normalizedValue = preStyles[prop];
                         break;
-                    case __WEBPACK_IMPORTED_MODULE_1__angular_animations__["g" /* AUTO_STYLE */]:
+                    case __WEBPACK_IMPORTED_MODULE_1__angular_animations__["a" /* AUTO_STYLE */]:
                         normalizedValue = postStyles[prop];
                         break;
                     default:
@@ -35796,7 +35994,7 @@ function normalizeAnimationEntry(steps) {
     if (Array.isArray(steps)) {
         if (steps.length == 1)
             return steps[0];
-        return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_animations__["a" /* sequence */])(steps);
+        return Object(__WEBPACK_IMPORTED_MODULE_1__angular_animations__["e" /* sequence */])(steps);
     }
     return steps;
 }
@@ -36494,7 +36692,7 @@ var AnimationAstBuilderVisitor = (function () {
         var /** @type {?} */ timingAst = constructTimingAst(metadata.timings, context.errors);
         context.currentAnimateTimings = timingAst;
         var /** @type {?} */ styles;
-        var /** @type {?} */ styleMetadata = metadata.styles ? metadata.styles : __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_animations__["h" /* style */])({});
+        var /** @type {?} */ styleMetadata = metadata.styles ? metadata.styles : Object(__WEBPACK_IMPORTED_MODULE_1__angular_animations__["f" /* style */])({});
         if (styleMetadata.type == 5 /* Keyframes */) {
             styles = this.visitKeyframes(/** @type {?} */ (styleMetadata), context);
         }
@@ -36507,7 +36705,7 @@ var AnimationAstBuilderVisitor = (function () {
                 if (timingAst.easing) {
                     newStyleData['easing'] = timingAst.easing;
                 }
-                styleMetadata_1 = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_animations__["h" /* style */])(newStyleData);
+                styleMetadata_1 = Object(__WEBPACK_IMPORTED_MODULE_1__angular_animations__["f" /* style */])(newStyleData);
             }
             context.currentTime += timingAst.duration + timingAst.delay;
             var /** @type {?} */ styleAst = this.visitStyle(styleMetadata_1, context);
@@ -36537,7 +36735,7 @@ var AnimationAstBuilderVisitor = (function () {
         if (Array.isArray(metadata.styles)) {
             ((metadata.styles)).forEach(function (styleTuple) {
                 if (typeof styleTuple == 'string') {
-                    if (styleTuple == __WEBPACK_IMPORTED_MODULE_1__angular_animations__["g" /* AUTO_STYLE */]) {
+                    if (styleTuple == __WEBPACK_IMPORTED_MODULE_1__angular_animations__["a" /* AUTO_STYLE */]) {
                         styles.push(/** @type {?} */ (styleTuple));
                     }
                     else {
@@ -37473,7 +37671,11 @@ var AnimationTimelineContext = (function () {
         }
         if (selector.length > 0) {
             var /** @type {?} */ multi = limit != 1;
-            results.push.apply(results, this._driver.query(this.element, selector, multi));
+            var /** @type {?} */ elements = this._driver.query(this.element, selector, multi);
+            if (limit !== 0) {
+                elements = elements.slice(0, limit);
+            }
+            results.push.apply(results, elements);
         }
         if (!optional && results.length == 0) {
             errors.push("`query(\"" + originalSelector + "\")` returned zero elements. (Use `query(\"" + originalSelector + "\", { optional: true })` if you wish to allow this.)");
@@ -37624,8 +37826,8 @@ var TimelineBuilder = (function () {
         // We use `_globalTimelineStyles` here because there may be
         // styles in previous keyframes that are not present in this timeline
         Object.keys(this._globalTimelineStyles).forEach(function (prop) {
-            _this._backFill[prop] = _this._globalTimelineStyles[prop] || __WEBPACK_IMPORTED_MODULE_1__angular_animations__["g" /* AUTO_STYLE */];
-            _this._currentKeyframe[prop] = __WEBPACK_IMPORTED_MODULE_1__angular_animations__["g" /* AUTO_STYLE */];
+            _this._backFill[prop] = _this._globalTimelineStyles[prop] || __WEBPACK_IMPORTED_MODULE_1__angular_animations__["a" /* AUTO_STYLE */];
+            _this._currentKeyframe[prop] = __WEBPACK_IMPORTED_MODULE_1__angular_animations__["a" /* AUTO_STYLE */];
         });
         this._currentEmptyStepKeyframe = this._currentKeyframe;
     };
@@ -37649,7 +37851,7 @@ var TimelineBuilder = (function () {
             if (!_this._localTimelineStyles.hasOwnProperty(prop)) {
                 _this._backFill[prop] = _this._globalTimelineStyles.hasOwnProperty(prop) ?
                     _this._globalTimelineStyles[prop] :
-                    __WEBPACK_IMPORTED_MODULE_1__angular_animations__["g" /* AUTO_STYLE */];
+                    __WEBPACK_IMPORTED_MODULE_1__angular_animations__["a" /* AUTO_STYLE */];
             }
             _this._updateStyle(prop, val);
         });
@@ -37731,10 +37933,10 @@ var TimelineBuilder = (function () {
             var /** @type {?} */ finalKeyframe = copyStyles(keyframe, true);
             Object.keys(finalKeyframe).forEach(function (prop) {
                 var /** @type {?} */ value = finalKeyframe[prop];
-                if (value == __WEBPACK_IMPORTED_MODULE_1__angular_animations__["f" /* ɵPRE_STYLE */]) {
+                if (value == __WEBPACK_IMPORTED_MODULE_1__angular_animations__["h" /* ɵPRE_STYLE */]) {
                     preStyleProps.add(prop);
                 }
-                else if (value == __WEBPACK_IMPORTED_MODULE_1__angular_animations__["g" /* AUTO_STYLE */]) {
+                else if (value == __WEBPACK_IMPORTED_MODULE_1__angular_animations__["a" /* AUTO_STYLE */]) {
                     postStyleProps.add(prop);
                 }
             });
@@ -37853,7 +38055,7 @@ function flattenStyles(input, allStyles) {
     input.forEach(function (token) {
         if (token === '*') {
             allProperties = allProperties || Object.keys(allStyles);
-            allProperties.forEach(function (prop) { styles[prop] = __WEBPACK_IMPORTED_MODULE_1__angular_animations__["g" /* AUTO_STYLE */]; });
+            allProperties.forEach(function (prop) { styles[prop] = __WEBPACK_IMPORTED_MODULE_1__angular_animations__["a" /* AUTO_STYLE */]; });
         }
         else {
             copyStyles(/** @type {?} */ (token), false, styles);
@@ -38331,7 +38533,7 @@ var TimelineAnimationEngine = (function () {
             throw new Error("Unable to create the animation due to the following errors: " + errors.join("\n"));
         }
         autoStylesMap.forEach(function (styles, element) {
-            Object.keys(styles).forEach(function (prop) { styles[prop] = _this._driver.computeStyle(element, prop, __WEBPACK_IMPORTED_MODULE_1__angular_animations__["g" /* AUTO_STYLE */]); });
+            Object.keys(styles).forEach(function (prop) { styles[prop] = _this._driver.computeStyle(element, prop, __WEBPACK_IMPORTED_MODULE_1__angular_animations__["a" /* AUTO_STYLE */]); });
         });
         var /** @type {?} */ players = instructions.map(function (i) {
             var /** @type {?} */ styles = autoStylesMap.get(i.element);
@@ -39321,6 +39523,7 @@ var TransitionAnimationEngine = (function () {
         var /** @type {?} */ allPostStyleElements = new Map();
         var /** @type {?} */ disabledElementsSet = new Set();
         this.disabledNodes.forEach(function (node) {
+            disabledElementsSet.add(node);
             var /** @type {?} */ nodesThatAreDisabled = _this.driver.query(node, QUEUED_SELECTOR, true);
             for (var /** @type {?} */ i = 0; i < nodesThatAreDisabled.length; i++) {
                 disabledElementsSet.add(nodesThatAreDisabled[i]);
@@ -39337,7 +39540,7 @@ var TransitionAnimationEngine = (function () {
             addClass(allEnterNodes[i], ENTER_CLASSNAME);
         }
         var /** @type {?} */ allLeaveNodes = [];
-        var /** @type {?} */ leaveNodesWithoutAnimations = [];
+        var /** @type {?} */ leaveNodesWithoutAnimations = new Set();
         for (var /** @type {?} */ i = 0; i < this.collectedLeaveElements.length; i++) {
             var /** @type {?} */ element = this.collectedLeaveElements[i];
             var /** @type {?} */ details = (element[REMOVAL_FLAG]);
@@ -39345,7 +39548,7 @@ var TransitionAnimationEngine = (function () {
                 addClass(element, LEAVE_CLASSNAME);
                 allLeaveNodes.push(element);
                 if (!details.hasAnimation) {
-                    leaveNodesWithoutAnimations.push(element);
+                    leaveNodesWithoutAnimations.add(element);
                 }
             }
         }
@@ -39421,12 +39624,14 @@ var TransitionAnimationEngine = (function () {
             this.reportError(errors_1);
         }
         // these can only be detected here since we have a map of all the elements
-        // that have animations attached to them...
-        var /** @type {?} */ enterNodesWithoutAnimations = [];
+        // that have animations attached to them... We use a set here in the event
+        // multiple enter captures on the same element were caught in different
+        // renderer namespaces (e.g. when a @trigger was on a host binding that had *ngIf)
+        var /** @type {?} */ enterNodesWithoutAnimations = new Set();
         for (var /** @type {?} */ i = 0; i < allEnterNodes.length; i++) {
             var /** @type {?} */ element = allEnterNodes[i];
             if (!subTimelines.has(element)) {
-                enterNodesWithoutAnimations.push(element);
+                enterNodesWithoutAnimations.add(element);
             }
         }
         var /** @type {?} */ allPreviousPlayersMap = new Map();
@@ -39441,15 +39646,37 @@ var TransitionAnimationEngine = (function () {
         skippedPlayers.forEach(function (player) {
             var /** @type {?} */ element = player.element;
             var /** @type {?} */ previousPlayers = _this._getPreviousPlayers(element, false, player.namespaceId, player.triggerName, null);
-            previousPlayers.forEach(function (prevPlayer) { getOrSetAsInMap(allPreviousPlayersMap, element, []).push(prevPlayer); });
+            previousPlayers.forEach(function (prevPlayer) {
+                getOrSetAsInMap(allPreviousPlayersMap, element, []).push(prevPlayer);
+                prevPlayer.destroy();
+            });
         });
-        allPreviousPlayersMap.forEach(function (players) { return players.forEach(function (player) { return player.destroy(); }); });
-        // PRE STAGE: fill the ! styles
-        var /** @type {?} */ preStylesMap = allPreStyleElements.size ?
-            cloakAndComputeStyles(this.driver, enterNodesWithoutAnimations, allPreStyleElements, __WEBPACK_IMPORTED_MODULE_1__angular_animations__["f" /* ɵPRE_STYLE */]) :
-            new Map();
+        // this is a special case for nodes that will be removed (either by)
+        // having their own leave animations or by being queried in a container
+        // that will be removed once a parent animation is complete. The idea
+        // here is that * styles must be identical to ! styles because of
+        // backwards compatibility (* is also filled in by default in many places).
+        // Otherwise * styles will return an empty value or auto since the element
+        // that is being getComputedStyle'd will not be visible (since * = destination)
+        var /** @type {?} */ replaceNodes = allLeaveNodes.filter(function (node) {
+            return replacePostStylesAsPre(node, allPreStyleElements, allPostStyleElements);
+        });
         // POST STAGE: fill the * styles
-        var /** @type {?} */ postStylesMap = cloakAndComputeStyles(this.driver, leaveNodesWithoutAnimations, allPostStyleElements, __WEBPACK_IMPORTED_MODULE_1__angular_animations__["g" /* AUTO_STYLE */]);
+        var _a = cloakAndComputeStyles(this.driver, leaveNodesWithoutAnimations, allPostStyleElements, __WEBPACK_IMPORTED_MODULE_1__angular_animations__["a" /* AUTO_STYLE */]), postStylesMap = _a[0], allLeaveQueriedNodes = _a[1];
+        allLeaveQueriedNodes.forEach(function (node) {
+            if (replacePostStylesAsPre(node, allPreStyleElements, allPostStyleElements)) {
+                replaceNodes.push(node);
+            }
+        });
+        // PRE STAGE: fill the ! styles
+        var preStylesMap = (allPreStyleElements.size ?
+            cloakAndComputeStyles(this.driver, enterNodesWithoutAnimations, allPreStyleElements, __WEBPACK_IMPORTED_MODULE_1__angular_animations__["h" /* ɵPRE_STYLE */]) :
+            [new Map()])[0];
+        replaceNodes.forEach(function (node) {
+            var /** @type {?} */ post = postStylesMap.get(node);
+            var /** @type {?} */ pre = preStylesMap.get(node);
+            postStylesMap.set(node, /** @type {?} */ (Object.assign({}, post, pre)));
+        });
         var /** @type {?} */ rootPlayers = [];
         var /** @type {?} */ subPlayers = [];
         queuedInstructions.forEach(function (entry) {
@@ -39487,10 +39714,19 @@ var TransitionAnimationEngine = (function () {
             else {
                 eraseStyles(element, instruction.fromStyles);
                 player.onDestroy(function () { return setStyles(element, instruction.toStyles); });
+                // there still might be a ancestor player animating this
+                // element therefore we will still add it as a sub player
+                // even if its animation may be disabled
                 subPlayers.push(player);
+                if (disabledElementsSet.has(element)) {
+                    skippedPlayers.push(player);
+                }
             }
         });
+        // find all of the sub players' corresponding inner animation player
         subPlayers.forEach(function (player) {
+            // even if any players are not found for a sub animation then it
+            // will still complete itself after the next tick since it's Noop
             var /** @type {?} */ playersForElement = skippedPlayersMap.get(player.element);
             if (playersForElement && playersForElement.length) {
                 var /** @type {?} */ innerPlayer = optimizeGroupPlayer(playersForElement);
@@ -39537,8 +39773,9 @@ var TransitionAnimationEngine = (function () {
                     }
                 }
             }
-            if (players.length) {
-                removeNodesAfterAnimationDone(this, element, players);
+            var /** @type {?} */ activePlayers = players.filter(function (p) { return !p.destroyed; });
+            if (activePlayers.length) {
+                removeNodesAfterAnimationDone(this, element, activePlayers);
             }
             else {
                 this.processLeaveNode(element);
@@ -39633,9 +39870,6 @@ var TransitionAnimationEngine = (function () {
      */
     TransitionAnimationEngine.prototype._beforeAnimationBuild = function (namespaceId, instruction, allPreviousPlayersMap) {
         var _this = this;
-        // it's important to do this step before destroying the players
-        // so that the onDone callback below won't fire before this
-        eraseStyles(instruction.element, instruction.fromStyles);
         var /** @type {?} */ triggerName = instruction.triggerName;
         var /** @type {?} */ rootElement = instruction.element;
         // when a removal animation occurs, ALL previous players are collected
@@ -39652,9 +39886,13 @@ var TransitionAnimationEngine = (function () {
                 if (realPlayer.beforeDestroy) {
                     realPlayer.beforeDestroy();
                 }
+                player.destroy();
                 players.push(player);
             });
         });
+        // this needs to be done so that the PRE/POST styles can be
+        // computed properly without interfering with the previous animation
+        eraseStyles(rootElement, instruction.fromStyles);
     };
     /**
      * @param {?} namespaceId
@@ -39964,8 +40202,10 @@ function cloakElement(element, value) {
  * @return {?}
  */
 function cloakAndComputeStyles(driver, elements, elementPropsMap, defaultStyle) {
-    var /** @type {?} */ cloakVals = elements.map(function (element) { return cloakElement(element); });
+    var /** @type {?} */ cloakVals = [];
+    elements.forEach(function (element) { return cloakVals.push(cloakElement(element)); });
     var /** @type {?} */ valuesMap = new Map();
+    var /** @type {?} */ failedElements = [];
     elementPropsMap.forEach(function (props, element) {
         var /** @type {?} */ styles = {};
         props.forEach(function (prop) {
@@ -39974,12 +40214,16 @@ function cloakAndComputeStyles(driver, elements, elementPropsMap, defaultStyle) 
             // by a parent animation element being detached.
             if (!value || value.length == 0) {
                 element[REMOVAL_FLAG] = NULL_REMOVED_QUERIED_STATE;
+                failedElements.push(element);
             }
         });
         valuesMap.set(element, styles);
     });
-    elements.forEach(function (element, i) { return cloakElement(element, cloakVals[i]); });
-    return valuesMap;
+    // we use a index variable here since Set.forEach(a, i) does not return
+    // an index value for the closure (but instead just the value)
+    var /** @type {?} */ i = 0;
+    elements.forEach(function (element) { return cloakElement(element, cloakVals[i++]); });
+    return [valuesMap, failedElements];
 }
 /**
  * @param {?} nodes
@@ -40087,7 +40331,7 @@ function flattenGroupPlayers(players) {
 function _flattenGroupPlayersRecur(players, finalPlayers) {
     for (var /** @type {?} */ i = 0; i < players.length; i++) {
         var /** @type {?} */ player = players[i];
-        if (player instanceof __WEBPACK_IMPORTED_MODULE_1__angular_animations__["e" /* ɵAnimationGroupPlayer */]) {
+        if (player instanceof __WEBPACK_IMPORTED_MODULE_1__angular_animations__["g" /* ɵAnimationGroupPlayer */]) {
             _flattenGroupPlayersRecur(player.players, finalPlayers);
         }
         else {
@@ -40110,6 +40354,26 @@ function objEquals(a, b) {
         if (!b.hasOwnProperty(prop) || a[prop] !== b[prop])
             return false;
     }
+    return true;
+}
+/**
+ * @param {?} element
+ * @param {?} allPreStyleElements
+ * @param {?} allPostStyleElements
+ * @return {?}
+ */
+function replacePostStylesAsPre(element, allPreStyleElements, allPostStyleElements) {
+    var /** @type {?} */ postEntry = allPostStyleElements.get(element);
+    if (!postEntry)
+        return false;
+    var /** @type {?} */ preEntry = allPreStyleElements.get(element);
+    if (preEntry) {
+        postEntry.forEach(function (data) { return ((preEntry)).add(data); });
+    }
+    else {
+        allPreStyleElements.set(element, postEntry);
+    }
+    allPostStyleElements.delete(element);
     return true;
 }
 /**
@@ -40458,9 +40722,9 @@ var WebAnimationsPlayer = (function () {
      */
     WebAnimationsPlayer.prototype.destroy = function () {
         if (!this._destroyed) {
+            this._destroyed = true;
             this._resetDomPlayerState();
             this._onFinish();
-            this._destroyed = true;
             this._onDestroyFns.forEach(function (fn) { return fn(); });
             this._onDestroyFns = [];
         }
@@ -40624,12 +40888,11 @@ function supportsWebAnimations() {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "NgLocaleLocalization", function() { return NgLocaleLocalization; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "NgLocalization", function() { return NgLocalization; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ɵparseCookieValue", function() { return parseCookieValue; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CommonModule", function() { return CommonModule; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DeprecatedI18NPipesModule", function() { return DeprecatedI18NPipesModule; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "NgClass", function() { return NgClass; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "NgFor", function() { return NgFor; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "NgForOf", function() { return NgForOf; });
@@ -40675,9 +40938,11 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Location", function() { return Location; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ɵa", function() { return COMMON_DIRECTIVES; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ɵb", function() { return COMMON_PIPES; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
- * @license Angular v4.3.4
+ * @license Angular v4.4.4
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -41921,7 +42186,7 @@ var NgClass = (function () {
             this._keyValueDiffer = null;
             this._rawClass = typeof v === 'string' ? v.split(/\s+/) : v;
             if (this._rawClass) {
-                if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisListLikeIterable"])(this._rawClass)) {
+                if (Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisListLikeIterable"])(this._rawClass)) {
                     this._iterableDiffer = this._iterableDiffers.find(this._rawClass).create();
                 }
                 else {
@@ -41982,7 +42247,7 @@ var NgClass = (function () {
                 _this._toggleClass(record.item, true);
             }
             else {
-                throw new Error("NgClass can only toggle CSS classes expressed as strings, got " + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(record.item));
+                throw new Error("NgClass can only toggle CSS classes expressed as strings, got " + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(record.item));
             }
         });
         changes.forEachRemovedItem(function (record) { return _this._toggleClass(record.item, false); });
@@ -42314,7 +42579,7 @@ var NgForOf = (function () {
          * @return {?}
          */
         set: function (fn) {
-            if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["isDevMode"])() && fn != null && typeof fn !== 'function') {
+            if (Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["isDevMode"])() && fn != null && typeof fn !== 'function') {
                 // TODO(vicb): use a log service once there is a public one available
                 if ((console) && (console.warn)) {
                     console.warn("trackBy must be a function, but received " + JSON.stringify(fn) + ". " +
@@ -43284,7 +43549,7 @@ var COMMON_DIRECTIVES = [
  * @return {?}
  */
 function invalidPipeArgumentError(type, value) {
-    return Error("InvalidPipeArgument: '" + value + "' for pipe '" + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type) + "'");
+    return Error("InvalidPipeArgument: '" + value + "' for pipe '" + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type) + "'");
 }
 /**
  * @license
@@ -43423,10 +43688,10 @@ var AsyncPipe = (function () {
      * @return {?}
      */
     AsyncPipe.prototype._selectStrategy = function (obj) {
-        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisPromise"])(obj)) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisPromise"])(obj)) {
             return _promiseStrategy;
         }
-        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisObservable"])(obj)) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisObservable"])(obj)) {
             return _observableStrategy;
         }
         throw invalidPipeArgumentError(AsyncPipe, obj);
@@ -44543,6 +44808,30 @@ CommonModule.decorators = [
  */
 CommonModule.ctorParameters = function () { return []; };
 /**
+ * I18N pipes are being changed to move away from using the JS Intl API.
+ *
+ * The former pipes relying on the Intl API will be moved to this module while the `CommonModule`
+ * will contain the new pipes that do not rely on Intl.
+ *
+ * As a first step this module is created empty to ease the migration.
+ *
+ * see https://github.com/angular/angular/pull/18284
+ *
+ * @deprecated from v5
+ */
+var DeprecatedI18NPipesModule = (function () {
+    function DeprecatedI18NPipesModule() {
+    }
+    return DeprecatedI18NPipesModule;
+}());
+DeprecatedI18NPipesModule.decorators = [
+    { type: __WEBPACK_IMPORTED_MODULE_1__angular_core__["NgModule"], args: [{ declarations: [], exports: [] },] },
+];
+/**
+ * @nocollapse
+ */
+DeprecatedI18NPipesModule.ctorParameters = function () { return []; };
+/**
  * @license
  * Copyright Google Inc. All Rights Reserved.
  *
@@ -44620,7 +44909,7 @@ function isPlatformWorkerUi(platformId) {
 /**
  * \@stable
  */
-var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.3.4');
+var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.4.4');
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -44659,11 +44948,10 @@ var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.3.4'
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* unused harmony export VERSION */
 /* unused harmony export TEMPLATE_TRANSFORMS */
 /* unused harmony export CompilerConfig */
+/* unused harmony export preserveWhitespacesDefault */
 /* unused harmony export JitCompiler */
 /* unused harmony export DirectiveResolver */
 /* unused harmony export PipeResolver */
@@ -44865,6 +45153,7 @@ var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.3.4'
 /* unused harmony export getNsPrefix */
 /* unused harmony export mergeNsAndName */
 /* unused harmony export NAMED_ENTITIES */
+/* unused harmony export NGSP_UNICODE */
 /* unused harmony export debugOutputAstAsTypeScript */
 /* unused harmony export TypeScriptEmitter */
 /* unused harmony export ParseLocation */
@@ -44887,9 +45176,11 @@ var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.3.4'
 /* unused harmony export splitClasses */
 /* unused harmony export createElementCssSelector */
 /* unused harmony export removeSummaryDuplicates */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
- * @license Angular v4.3.4
+ * @license Angular v4.4.4
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -44909,7 +45200,7 @@ var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.3.4'
 /**
  * \@stable
  */
-var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.3.4');
+var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.4.4');
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -45899,6 +46190,10 @@ var NAMED_ENTITIES = {
     'zwj': '\u200D',
     'zwnj': '\u200C',
 };
+// The &ngsp; pseudo-entity is denoting a space. see:
+// https://github.com/dart-lang/angular/blob/0bb611387d29d65b5af7f9d2515ab571fd3fbee4/_tests/test/compiler/preserve_whitespace_test.dart
+var NGSP_UNICODE = '\uE500';
+NAMED_ENTITIES['ngsp'] = NGSP_UNICODE;
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -46560,12 +46855,12 @@ var ValueTransformer = (function () {
 }());
 var SyncAsync = {
     assertSync: function (value) {
-        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisPromise"])(value)) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisPromise"])(value)) {
             throw new Error("Illegal state: value cannot be a promise");
         }
         return value;
     },
-    then: function (value, cb) { return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisPromise"])(value) ? value.then(cb) : cb(value); },
+    then: function (value, cb) { return Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisPromise"])(value) ? value.then(cb) : cb(value); },
     all: function (syncAsyncValues) {
         return syncAsyncValues.some(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisPromise"]) ? Promise.all(syncAsyncValues) : (syncAsyncValues);
     }
@@ -46819,7 +47114,7 @@ function identifierName(compileIdentifier) {
     if (ref['__anonymousType']) {
         return ref['__anonymousType'];
     }
-    var /** @type {?} */ identifier = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(ref);
+    var /** @type {?} */ identifier = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(ref);
     if (identifier.indexOf('(') >= 0) {
         // case: anonymous functions!
         identifier = "anonymous_" + _anonymousTypeIndex++;
@@ -46840,7 +47135,7 @@ function identifierModuleUrl(compileIdentifier) {
         return ref.filePath;
     }
     // Runtime type
-    return "./" + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(ref);
+    return "./" + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(ref);
 }
 /**
  * @param {?} compType
@@ -46922,7 +47217,7 @@ var CompileTemplateMetadata = (function () {
      * @param {?} __0
      */
     function CompileTemplateMetadata(_a) {
-        var encapsulation = _a.encapsulation, template = _a.template, templateUrl = _a.templateUrl, styles = _a.styles, styleUrls = _a.styleUrls, externalStylesheets = _a.externalStylesheets, animations = _a.animations, ngContentSelectors = _a.ngContentSelectors, interpolation = _a.interpolation, isInline = _a.isInline;
+        var encapsulation = _a.encapsulation, template = _a.template, templateUrl = _a.templateUrl, styles = _a.styles, styleUrls = _a.styleUrls, externalStylesheets = _a.externalStylesheets, animations = _a.animations, ngContentSelectors = _a.ngContentSelectors, interpolation = _a.interpolation, isInline = _a.isInline, preserveWhitespaces = _a.preserveWhitespaces;
         this.encapsulation = encapsulation;
         this.template = template;
         this.templateUrl = templateUrl;
@@ -46936,6 +47231,7 @@ var CompileTemplateMetadata = (function () {
         }
         this.interpolation = interpolation;
         this.isInline = isInline;
+        this.preserveWhitespaces = preserveWhitespaces;
     }
     /**
      * @return {?}
@@ -47092,7 +47388,8 @@ function createHostComponentMeta(hostTypeReference, compMeta, hostViewType) {
             animations: [],
             isInline: true,
             externalStylesheets: [],
-            interpolation: null
+            interpolation: null,
+            preserveWhitespaces: false,
         }),
         exportAs: null,
         changeDetection: __WEBPACK_IMPORTED_MODULE_1__angular_core__["ChangeDetectionStrategy"].Default,
@@ -47420,14 +47717,24 @@ var CompilerConfig = (function () {
      * @param {?=} __0
      */
     function CompilerConfig(_a) {
-        var _b = _a === void 0 ? {} : _a, _c = _b.defaultEncapsulation, defaultEncapsulation = _c === void 0 ? __WEBPACK_IMPORTED_MODULE_1__angular_core__["ViewEncapsulation"].Emulated : _c, _d = _b.useJit, useJit = _d === void 0 ? true : _d, missingTranslation = _b.missingTranslation, enableLegacyTemplate = _b.enableLegacyTemplate;
+        var _b = _a === void 0 ? {} : _a, _c = _b.defaultEncapsulation, defaultEncapsulation = _c === void 0 ? __WEBPACK_IMPORTED_MODULE_1__angular_core__["ViewEncapsulation"].Emulated : _c, _d = _b.useJit, useJit = _d === void 0 ? true : _d, missingTranslation = _b.missingTranslation, enableLegacyTemplate = _b.enableLegacyTemplate, preserveWhitespaces = _b.preserveWhitespaces;
         this.defaultEncapsulation = defaultEncapsulation;
         this.useJit = !!useJit;
         this.missingTranslation = missingTranslation || null;
         this.enableLegacyTemplate = enableLegacyTemplate !== false;
+        this.preserveWhitespaces = preserveWhitespacesDefault(noUndefined(preserveWhitespaces));
     }
     return CompilerConfig;
 }());
+/**
+ * @param {?} preserveWhitespacesOption
+ * @param {?=} defaultSetting
+ * @return {?}
+ */
+function preserveWhitespacesDefault(preserveWhitespacesOption, defaultSetting) {
+    if (defaultSetting === void 0) { defaultSetting = true; }
+    return preserveWhitespacesOption === null ? defaultSetting : preserveWhitespacesOption;
+}
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -48798,7 +49105,7 @@ function CompilerInjectable() {
  * @return {?}
  */
 function assertArrayOfStrings(identifier, value) {
-    if (!__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["isDevMode"])() || value == null) {
+    if (!Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["isDevMode"])() || value == null) {
         return;
     }
     if (!Array.isArray(value)) {
@@ -48826,7 +49133,7 @@ function assertInterpolationSymbols(identifier, value) {
     if (value != null && !(Array.isArray(value) && value.length == 2)) {
         throw new Error("Expected '" + identifier + "' to be an array, [start, end].");
     }
-    else if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["isDevMode"])() && value != null) {
+    else if (Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["isDevMode"])() && value != null) {
         var /** @type {?} */ start_1 = (value[0]);
         var /** @type {?} */ end_1 = (value[1]);
         // black list checking
@@ -56044,6 +56351,116 @@ function createTokenForExternalReference(reflector, reference) {
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
+var PRESERVE_WS_ATTR_NAME = 'ngPreserveWhitespaces';
+var SKIP_WS_TRIM_TAGS = new Set(['pre', 'template', 'textarea', 'script', 'style']);
+// Equivalent to \s with \u00a0 (non-breaking space) excluded.
+// Based on https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp
+var WS_CHARS = ' \f\n\r\t\v\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff';
+var NO_WS_REGEXP = new RegExp("[^" + WS_CHARS + "]");
+var WS_REPLACE_REGEXP = new RegExp("[" + WS_CHARS + "]{2,}", 'g');
+/**
+ * @param {?} attrs
+ * @return {?}
+ */
+function hasPreserveWhitespacesAttr(attrs) {
+    return attrs.some(function (attr) { return attr.name === PRESERVE_WS_ATTR_NAME; });
+}
+/**
+ * Angular Dart introduced &ngsp; as a placeholder for non-removable space, see:
+ * https://github.com/dart-lang/angular/blob/0bb611387d29d65b5af7f9d2515ab571fd3fbee4/_tests/test/compiler/preserve_whitespace_test.dart#L25-L32
+ * In Angular Dart &ngsp; is converted to the 0xE500 PUA (Private Use Areas) unicode character
+ * and later on replaced by a space. We are re-implementing the same idea here.
+ * @param {?} value
+ * @return {?}
+ */
+function replaceNgsp(value) {
+    // lexer is replacing the &ngsp; pseudo-entity with NGSP_UNICODE
+    return value.replace(new RegExp(NGSP_UNICODE, 'g'), ' ');
+}
+/**
+ * This visitor can walk HTML parse tree and remove / trim text nodes using the following rules:
+ * - consider spaces, tabs and new lines as whitespace characters;
+ * - drop text nodes consisting of whitespace characters only;
+ * - for all other text nodes replace consecutive whitespace characters with one space;
+ * - convert &ngsp; pseudo-entity to a single space;
+ *
+ * Removal and trimming of whitespaces have positive performance impact (less code to generate
+ * while compiling templates, faster view creation). At the same time it can be "destructive"
+ * in some cases (whitespaces can influence layout). Because of the potential of breaking layout
+ * this visitor is not activated by default in Angular 4 and people need to explicitly opt-in for
+ * whitespace removal. The default option for whitespace removal will be revisited post Angular 5
+ * and might be changed to "on" by default.
+ */
+var WhitespaceVisitor = (function () {
+    function WhitespaceVisitor() {
+    }
+    /**
+     * @param {?} element
+     * @param {?} context
+     * @return {?}
+     */
+    WhitespaceVisitor.prototype.visitElement = function (element, context) {
+        if (SKIP_WS_TRIM_TAGS.has(element.name) || hasPreserveWhitespacesAttr(element.attrs)) {
+            // don't descent into elements where we need to preserve whitespaces
+            // but still visit all attributes to eliminate one used as a market to preserve WS
+            return new Element(element.name, visitAll(this, element.attrs), element.children, element.sourceSpan, element.startSourceSpan, element.endSourceSpan);
+        }
+        return new Element(element.name, element.attrs, visitAll(this, element.children), element.sourceSpan, element.startSourceSpan, element.endSourceSpan);
+    };
+    /**
+     * @param {?} attribute
+     * @param {?} context
+     * @return {?}
+     */
+    WhitespaceVisitor.prototype.visitAttribute = function (attribute, context) {
+        return attribute.name !== PRESERVE_WS_ATTR_NAME ? attribute : null;
+    };
+    /**
+     * @param {?} text
+     * @param {?} context
+     * @return {?}
+     */
+    WhitespaceVisitor.prototype.visitText = function (text, context) {
+        var /** @type {?} */ isNotBlank = text.value.match(NO_WS_REGEXP);
+        if (isNotBlank) {
+            return new Text(replaceNgsp(text.value).replace(WS_REPLACE_REGEXP, ' '), text.sourceSpan);
+        }
+        return null;
+    };
+    /**
+     * @param {?} comment
+     * @param {?} context
+     * @return {?}
+     */
+    WhitespaceVisitor.prototype.visitComment = function (comment, context) { return comment; };
+    /**
+     * @param {?} expansion
+     * @param {?} context
+     * @return {?}
+     */
+    WhitespaceVisitor.prototype.visitExpansion = function (expansion, context) { return expansion; };
+    /**
+     * @param {?} expansionCase
+     * @param {?} context
+     * @return {?}
+     */
+    WhitespaceVisitor.prototype.visitExpansionCase = function (expansionCase, context) { return expansionCase; };
+    return WhitespaceVisitor;
+}());
+/**
+ * @param {?} htmlAstWithErrors
+ * @return {?}
+ */
+function removeWhitespaces(htmlAstWithErrors) {
+    return new ParseTreeResult(visitAll(new WhitespaceVisitor(), htmlAstWithErrors.rootNodes), htmlAstWithErrors.errors);
+}
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 // http://cldr.unicode.org/index/cldr-spec/plural-rules
 var PLURAL_CASES = ['zero', 'one', 'two', 'few', 'many', 'other'];
 /**
@@ -57211,7 +57628,7 @@ var BindingParser = (function () {
         // This will occur when a @trigger is not paired with an expression.
         // For animations it is valid to not have an expression since */void
         // states will be applied by angular when the element is attached/detached
-        var /** @type {?} */ ast = this._parseBinding(expression || 'null', false, sourceSpan);
+        var /** @type {?} */ ast = this._parseBinding(expression || 'undefined', false, sourceSpan);
         targetMatchableAttrs.push([name, /** @type {?} */ ((ast.source))]);
         targetProps.push(new BoundProperty(name, ast, BoundPropertyType.ANIMATION, sourceSpan));
     };
@@ -57684,10 +58101,11 @@ var TemplateParser = (function () {
      * @param {?} pipes
      * @param {?} schemas
      * @param {?} templateUrl
+     * @param {?} preserveWhitespaces
      * @return {?}
      */
-    TemplateParser.prototype.parse = function (component, template, directives, pipes, schemas, templateUrl) {
-        var /** @type {?} */ result = this.tryParse(component, template, directives, pipes, schemas, templateUrl);
+    TemplateParser.prototype.parse = function (component, template, directives, pipes, schemas, templateUrl, preserveWhitespaces) {
+        var /** @type {?} */ result = this.tryParse(component, template, directives, pipes, schemas, templateUrl, preserveWhitespaces);
         var /** @type {?} */ warnings = ((result.errors)).filter(function (error) { return error.level === ParseErrorLevel.WARNING; })
             .filter(warnOnlyOnce([TEMPLATE_ATTR_DEPRECATION_WARNING, TEMPLATE_ELEMENT_DEPRECATION_WARNING]));
         var /** @type {?} */ errors = ((result.errors)).filter(function (error) { return error.level === ParseErrorLevel.ERROR; });
@@ -57707,10 +58125,15 @@ var TemplateParser = (function () {
      * @param {?} pipes
      * @param {?} schemas
      * @param {?} templateUrl
+     * @param {?} preserveWhitespaces
      * @return {?}
      */
-    TemplateParser.prototype.tryParse = function (component, template, directives, pipes, schemas, templateUrl) {
-        return this.tryParseHtml(this.expandHtml(/** @type {?} */ ((this._htmlParser)).parse(template, templateUrl, true, this.getInterpolationConfig(component))), component, directives, pipes, schemas);
+    TemplateParser.prototype.tryParse = function (component, template, directives, pipes, schemas, templateUrl, preserveWhitespaces) {
+        var /** @type {?} */ htmlParseResult = ((this._htmlParser)).parse(template, templateUrl, true, this.getInterpolationConfig(component));
+        if (!preserveWhitespaces) {
+            htmlParseResult = removeWhitespaces(htmlParseResult);
+        }
+        return this.tryParseHtml(this.expandHtml(htmlParseResult), component, directives, pipes, schemas);
     };
     /**
      * @param {?} htmlAstWithErrors
@@ -57866,9 +58289,10 @@ var TemplateParseVisitor = (function () {
      */
     TemplateParseVisitor.prototype.visitText = function (text, parent) {
         var /** @type {?} */ ngContentIndex = ((parent.findNgContentIndex(TEXT_CSS_SELECTOR)));
-        var /** @type {?} */ expr = this._bindingParser.parseInterpolation(text.value, /** @type {?} */ ((text.sourceSpan)));
+        var /** @type {?} */ valueNoNgsp = replaceNgsp(text.value);
+        var /** @type {?} */ expr = this._bindingParser.parseInterpolation(valueNoNgsp, /** @type {?} */ ((text.sourceSpan)));
         return expr ? new BoundTextAst(expr, ngContentIndex, /** @type {?} */ ((text.sourceSpan))) :
-            new TextAst(text.value, ngContentIndex, /** @type {?} */ ((text.sourceSpan)));
+            new TextAst(valueNoNgsp, ngContentIndex, /** @type {?} */ ((text.sourceSpan)));
     };
     /**
      * @param {?} attribute
@@ -58150,7 +58574,7 @@ var TemplateParseVisitor = (function () {
             _this._createDirectivePropertyAsts(directive.inputs, props, directiveProperties, targetBoundDirectivePropNames);
             elementOrDirectiveRefs.forEach(function (elOrDirRef) {
                 if ((elOrDirRef.value.length === 0 && directive.isComponent) ||
-                    (directive.exportAs == elOrDirRef.value)) {
+                    (elOrDirRef.isReferenceToDirective(directive))) {
                     targetReferences.push(new ReferenceAst(elOrDirRef.name, createTokenForReference(directive.type.reference), elOrDirRef.sourceSpan));
                     matchedReferences.add(elOrDirRef.name);
                 }
@@ -58414,6 +58838,13 @@ var NonBindableVisitor = (function () {
     NonBindableVisitor.prototype.visitExpansionCase = function (expansionCase, context) { return expansionCase; };
     return NonBindableVisitor;
 }());
+/**
+ * A reference to an element or directive in a template. E.g., the reference in this template:
+ *
+ * <div #myMenu="coolMenu">
+ *
+ * would be {name: 'myMenu', value: 'coolMenu', sourceSpan: ...}
+ */
 var ElementOrDirectiveRef = (function () {
     /**
      * @param {?} name
@@ -58425,8 +58856,24 @@ var ElementOrDirectiveRef = (function () {
         this.value = value;
         this.sourceSpan = sourceSpan;
     }
+    /**
+     * Gets whether this is a reference to the given directive.
+     * @param {?} directive
+     * @return {?}
+     */
+    ElementOrDirectiveRef.prototype.isReferenceToDirective = function (directive) {
+        return splitExportAs(directive.exportAs).indexOf(this.value) !== -1;
+    };
     return ElementOrDirectiveRef;
 }());
+/**
+ * Splits a raw, potentially comma-delimted `exportAs` value into an array of names.
+ * @param {?} exportAs
+ * @return {?}
+ */
+function splitExportAs(exportAs) {
+    return exportAs ? exportAs.split(',').map(function (e) { return e.trim(); }) : [];
+}
 /**
  * @param {?} classAttrValue
  * @return {?}
@@ -58968,19 +59415,23 @@ var DirectiveNormalizer = (function () {
         var _this = this;
         if (isDefined(prenormData.template)) {
             if (isDefined(prenormData.templateUrl)) {
-                throw syntaxError("'" + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(prenormData.componentType) + "' component cannot define both template and templateUrl");
+                throw syntaxError("'" + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(prenormData.componentType) + "' component cannot define both template and templateUrl");
             }
             if (typeof prenormData.template !== 'string') {
-                throw syntaxError("The template specified for component " + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(prenormData.componentType) + " is not a string");
+                throw syntaxError("The template specified for component " + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(prenormData.componentType) + " is not a string");
             }
         }
         else if (isDefined(prenormData.templateUrl)) {
             if (typeof prenormData.templateUrl !== 'string') {
-                throw syntaxError("The templateUrl specified for component " + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(prenormData.componentType) + " is not a string");
+                throw syntaxError("The templateUrl specified for component " + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(prenormData.componentType) + " is not a string");
             }
         }
         else {
-            throw syntaxError("No template specified for component " + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(prenormData.componentType));
+            throw syntaxError("No template specified for component " + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(prenormData.componentType));
+        }
+        if (isDefined(prenormData.preserveWhitespaces) &&
+            typeof prenormData.preserveWhitespaces !== 'boolean') {
+            throw syntaxError("The preserveWhitespaces option for component " + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(prenormData.componentType) + " must be a boolean");
         }
         return SyncAsync.then(this.normalizeTemplateOnly(prenormData), function (result) { return _this.normalizeExternalStylesheets(result); });
     };
@@ -59041,7 +59492,8 @@ var DirectiveNormalizer = (function () {
             ngContentSelectors: visitor.ngContentSelectors,
             animations: prenormData.animations,
             interpolation: prenormData.interpolation, isInline: isInline,
-            externalStylesheets: []
+            externalStylesheets: [],
+            preserveWhitespaces: preserveWhitespacesDefault(prenormData.preserveWhitespaces, this._config.preserveWhitespaces),
         });
     };
     /**
@@ -59060,6 +59512,7 @@ var DirectiveNormalizer = (function () {
             animations: templateMeta.animations,
             interpolation: templateMeta.interpolation,
             isInline: templateMeta.isInline,
+            preserveWhitespaces: templateMeta.preserveWhitespaces,
         }); });
     };
     /**
@@ -59204,7 +59657,7 @@ var DirectiveResolver = (function () {
      * @return {?}
      */
     DirectiveResolver.prototype.isDirective = function (type) {
-        var /** @type {?} */ typeMetadata = this._reflector.annotations(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(type));
+        var /** @type {?} */ typeMetadata = this._reflector.annotations(Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(type));
         return typeMetadata && typeMetadata.some(isDirectiveMetadata);
     };
     /**
@@ -59214,7 +59667,7 @@ var DirectiveResolver = (function () {
      */
     DirectiveResolver.prototype.resolve = function (type, throwIfNotFound) {
         if (throwIfNotFound === void 0) { throwIfNotFound = true; }
-        var /** @type {?} */ typeMetadata = this._reflector.annotations(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(type));
+        var /** @type {?} */ typeMetadata = this._reflector.annotations(Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(type));
         if (typeMetadata) {
             var /** @type {?} */ metadata = findLast(typeMetadata, isDirectiveMetadata);
             if (metadata) {
@@ -59223,7 +59676,7 @@ var DirectiveResolver = (function () {
             }
         }
         if (throwIfNotFound) {
-            throw new Error("No Directive annotation found on " + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type));
+            throw new Error("No Directive annotation found on " + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type));
         }
         return null;
     };
@@ -59341,7 +59794,8 @@ var DirectiveResolver = (function () {
                 styleUrls: directive.styleUrls,
                 encapsulation: directive.encapsulation,
                 animations: directive.animations,
-                interpolation: directive.interpolation
+                interpolation: directive.interpolation,
+                preserveWhitespaces: directive.preserveWhitespaces,
             });
         }
         else {
@@ -59590,7 +60044,7 @@ var NgModuleResolver = (function () {
         }
         else {
             if (throwIfNotFound) {
-                throw new Error("No NgModule metadata found for '" + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type) + "'.");
+                throw new Error("No NgModule metadata found for '" + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type) + "'.");
             }
             return null;
         }
@@ -59639,7 +60093,7 @@ var PipeResolver = (function () {
      * @return {?}
      */
     PipeResolver.prototype.isPipe = function (type) {
-        var /** @type {?} */ typeMetadata = this._reflector.annotations(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(type));
+        var /** @type {?} */ typeMetadata = this._reflector.annotations(Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(type));
         return typeMetadata && typeMetadata.some(_isPipeMetadata);
     };
     /**
@@ -59650,7 +60104,7 @@ var PipeResolver = (function () {
      */
     PipeResolver.prototype.resolve = function (type, throwIfNotFound) {
         if (throwIfNotFound === void 0) { throwIfNotFound = true; }
-        var /** @type {?} */ metas = this._reflector.annotations(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(type));
+        var /** @type {?} */ metas = this._reflector.annotations(Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(type));
         if (metas) {
             var /** @type {?} */ annotation = findLast(metas, _isPipeMetadata);
             if (annotation) {
@@ -59658,7 +60112,7 @@ var PipeResolver = (function () {
             }
         }
         if (throwIfNotFound) {
-            throw new Error("No Pipe decorator found on " + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type));
+            throw new Error("No Pipe decorator found on " + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type));
         }
         return null;
     };
@@ -59855,7 +60309,7 @@ var CompileMetadataResolver = (function () {
         var /** @type {?} */ delegate = null;
         var /** @type {?} */ proxyClass = (function () {
             if (!delegate) {
-                throw new Error("Illegal state: Class " + name + " for type " + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(baseType) + " is not compiled yet!");
+                throw new Error("Illegal state: Class " + name + " for type " + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(baseType) + " is not compiled yet!");
             }
             return delegate.apply(this, arguments);
         });
@@ -59938,7 +60392,7 @@ var CompileMetadataResolver = (function () {
             var /** @type {?} */ hostView = this.getHostComponentViewClass(dirType);
             // Note: ngContentSelectors will be filled later once the template is
             // loaded.
-            return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵccf"])(selector, dirType, /** @type {?} */ (hostView), inputs, outputs, []);
+            return Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵccf"])(selector, dirType, /** @type {?} */ (hostView), inputs, outputs, []);
         }
     };
     /**
@@ -59977,7 +60431,7 @@ var CompileMetadataResolver = (function () {
         if (this._directiveCache.has(directiveType)) {
             return null;
         }
-        directiveType = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(directiveType);
+        directiveType = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(directiveType);
         var _a = ((this.getNonNormalizedDirectiveMetadata(directiveType))), annotation = _a.annotation, metadata = _a.metadata;
         var /** @type {?} */ createDirectiveMetadata = function (templateMetadata) {
             var /** @type {?} */ normalizedDirMeta = new CompileDirectiveMetadata({
@@ -60021,9 +60475,10 @@ var CompileMetadataResolver = (function () {
                 styles: template.styles,
                 styleUrls: template.styleUrls,
                 animations: template.animations,
-                interpolation: template.interpolation
+                interpolation: template.interpolation,
+                preserveWhitespaces: template.preserveWhitespaces
             });
-            if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisPromise"])(templateMeta) && isSync) {
+            if (Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisPromise"])(templateMeta) && isSync) {
                 this._reportError(componentStillLoadingError(directiveType), directiveType);
                 return null;
             }
@@ -60041,7 +60496,7 @@ var CompileMetadataResolver = (function () {
      */
     CompileMetadataResolver.prototype.getNonNormalizedDirectiveMetadata = function (directiveType) {
         var _this = this;
-        directiveType = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(directiveType);
+        directiveType = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(directiveType);
         if (!directiveType) {
             return null;
         }
@@ -60070,7 +60525,8 @@ var CompileMetadataResolver = (function () {
                 interpolation: noUndefined(dirMeta.interpolation),
                 isInline: !!dirMeta.template,
                 externalStylesheets: [],
-                ngContentSelectors: []
+                ngContentSelectors: [],
+                preserveWhitespaces: noUndefined(dirMeta.preserveWhitespaces),
             });
         }
         var /** @type {?} */ changeDetectionStrategy = ((null));
@@ -60232,7 +60688,7 @@ var CompileMetadataResolver = (function () {
     CompileMetadataResolver.prototype.getNgModuleMetadata = function (moduleType, throwIfNotFound) {
         var _this = this;
         if (throwIfNotFound === void 0) { throwIfNotFound = true; }
-        moduleType = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(moduleType);
+        moduleType = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(moduleType);
         var /** @type {?} */ compileMeta = this._ngModuleCache.get(moduleType);
         if (compileMeta) {
             return compileMeta;
@@ -60471,7 +60927,7 @@ var CompileMetadataResolver = (function () {
      * @return {?}
      */
     CompileMetadataResolver.prototype._getIdentifierMetadata = function (type) {
-        type = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(type);
+        type = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(type);
         return { reference: type };
     };
     /**
@@ -60530,7 +60986,7 @@ var CompileMetadataResolver = (function () {
      */
     CompileMetadataResolver.prototype._getFactoryMetadata = function (factory, dependencies) {
         if (dependencies === void 0) { dependencies = null; }
-        factory = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(factory);
+        factory = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(factory);
         return { reference: factory, diDeps: this._getDependenciesMetadata(factory, dependencies) };
     };
     /**
@@ -60573,7 +61029,7 @@ var CompileMetadataResolver = (function () {
      * @return {?}
      */
     CompileMetadataResolver.prototype._loadPipeMetadata = function (pipeType) {
-        pipeType = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(pipeType);
+        pipeType = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(pipeType);
         var /** @type {?} */ pipeAnnotation = ((this._pipeResolver.resolve(pipeType)));
         var /** @type {?} */ pipeMeta = new CompilePipeMetadata({
             type: this._getTypeMetadata(pipeType),
@@ -60664,7 +61120,7 @@ var CompileMetadataResolver = (function () {
      * @return {?}
      */
     CompileMetadataResolver.prototype._getTokenMetadata = function (token) {
-        token = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(token);
+        token = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(token);
         var /** @type {?} */ compileToken;
         if (typeof token === 'string') {
             compileToken = { value: token };
@@ -60690,7 +61146,7 @@ var CompileMetadataResolver = (function () {
                 _this._getProvidersMetadata(provider, targetEntryComponents, debugInfo, compileProviders);
             }
             else {
-                provider = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(provider);
+                provider = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(provider);
                 var /** @type {?} */ providerMeta = ((undefined));
                 if (provider && typeof provider === 'object' && provider.hasOwnProperty('provide')) {
                     _this._validateProvider(provider);
@@ -60915,7 +61371,7 @@ function flattenArray(tree, out) {
     if (out === void 0) { out = []; }
     if (tree) {
         for (var /** @type {?} */ i = 0; i < tree.length; i++) {
-            var /** @type {?} */ item = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(tree[i]);
+            var /** @type {?} */ item = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["resolveForwardRef"])(tree[i]);
             if (Array.isArray(item)) {
                 flattenArray(item, out);
             }
@@ -60982,7 +61438,7 @@ function stringifyType(type) {
         return type.name + " in " + type.filePath;
     }
     else {
-        return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type);
+        return Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type);
     }
 }
 /**
@@ -60991,7 +61447,7 @@ function stringifyType(type) {
  * @return {?}
  */
 function componentStillLoadingError(compType) {
-    var /** @type {?} */ error = Error("Can't compile synchronously as " + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(compType) + " is still being loaded!");
+    var /** @type {?} */ error = Error("Can't compile synchronously as " + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(compType) + " is still being loaded!");
     ((error))[__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵERROR_COMPONENT_TYPE"]] = compType;
     return error;
 }
@@ -63835,7 +64291,7 @@ var EmitterVisitorContext = (function () {
     EmitterVisitorContext.prototype.spanOf = function (line, column) {
         var /** @type {?} */ emittedLine = this._lines[line - this._preambleLineCount];
         if (emittedLine) {
-            var /** @type {?} */ columnsLeft = column - emittedLine.indent;
+            var /** @type {?} */ columnsLeft = column - _createIndent(emittedLine.indent).length;
             for (var /** @type {?} */ partIndex = 0; partIndex < emittedLine.parts.length; partIndex++) {
                 var /** @type {?} */ part = emittedLine.parts[partIndex];
                 if (part.length > columnsLeft) {
@@ -67409,12 +67865,12 @@ var ViewBuilder = (function () {
         var /** @type {?} */ usedEvents = new Map();
         ast.outputs.forEach(function (event) {
             var _a = elementEventNameAndTarget(event, null), name = _a.name, target = _a.target;
-            usedEvents.set(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵelementEventFullName"])(target, name), [target, name]);
+            usedEvents.set(Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵelementEventFullName"])(target, name), [target, name]);
         });
         ast.directives.forEach(function (dirAst) {
             dirAst.hostEvents.forEach(function (event) {
                 var _a = elementEventNameAndTarget(event, dirAst), name = _a.name, target = _a.target;
-                usedEvents.set(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵelementEventFullName"])(target, name), [target, name]);
+                usedEvents.set(Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵelementEventFullName"])(target, name), [target, name]);
             });
         });
         var /** @type {?} */ hostBindings = [];
@@ -67859,7 +68315,7 @@ var ViewBuilder = (function () {
                 trueStmts.push(ALLOW_DEFAULT_VAR.set(allowDefault.and(ALLOW_DEFAULT_VAR)).toStmt());
             }
             var _c = elementEventNameAndTarget(eventAst, dirAst), eventTarget = _c.target, eventName = _c.name;
-            var /** @type {?} */ fullEventName = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵelementEventFullName"])(eventTarget, eventName);
+            var /** @type {?} */ fullEventName = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵelementEventFullName"])(eventTarget, eventName);
             handleEventStmts.push(applySourceSpanToStatementIfNeeded(new IfStmt(literal(fullEventName).identical(EVENT_NAME_VAR), trueStmts), eventAst.sourceSpan));
         });
         var /** @type {?} */ handleEventFn;
@@ -68818,9 +69274,10 @@ var AotCompiler = (function () {
         var /** @type {?} */ ngModule = ((this._metadataResolver.getNgModuleMetadata(ngModuleType)));
         var /** @type {?} */ providers = [];
         if (this._localeId) {
+            var /** @type {?} */ normalizedLocale = this._localeId.replace(/_/g, '-');
             providers.push({
                 token: createTokenForExternalReference(this._reflector, Identifiers.LOCALE_ID),
-                useValue: this._localeId,
+                useValue: normalizedLocale,
             });
         }
         if (this._translationFormat) {
@@ -68878,7 +69335,8 @@ var AotCompiler = (function () {
         var _this = this;
         var /** @type {?} */ directives = directiveIdentifiers.map(function (dir) { return _this._metadataResolver.getDirectiveSummary(dir.reference); });
         var /** @type {?} */ pipes = ngModule.transitiveModule.pipes.map(function (pipe) { return _this._metadataResolver.getPipeSummary(pipe.reference); });
-        var _a = this._templateParser.parse(compMeta, /** @type {?} */ ((((compMeta.template)).template)), directives, pipes, ngModule.schemas, templateSourceUrl(ngModule.type, compMeta, /** @type {?} */ ((compMeta.template)))), parsedTemplate = _a.template, usedPipes = _a.pipes;
+        var /** @type {?} */ preserveWhitespaces = ((((compMeta)).template)).preserveWhitespaces;
+        var _a = this._templateParser.parse(compMeta, /** @type {?} */ ((((compMeta.template)).template)), directives, pipes, ngModule.schemas, templateSourceUrl(ngModule.type, compMeta, /** @type {?} */ ((compMeta.template))), preserveWhitespaces), parsedTemplate = _a.template, usedPipes = _a.pipes;
         var /** @type {?} */ stylesExpr = componentStyles ? variable(componentStyles.stylesVar) : literalArr([]);
         var /** @type {?} */ viewResult = this._viewCompiler.compileComponent(outputCtx, compMeta, parsedTemplate, stylesExpr, usedPipes);
         if (componentStyles) {
@@ -69587,7 +70045,9 @@ var StaticReflector = (function () {
                         var item = _a[_i];
                         // Check for a spread expression
                         if (item && item.__symbolic === 'spread') {
-                            var /** @type {?} */ spreadArray = simplify(item.expression);
+                            // We call with references as 0 because we require the actual value and cannot
+                            // tolerate a reference here.
+                            var /** @type {?} */ spreadArray = simplifyInContext(context, item.expression, depth, 0);
                             if (Array.isArray(spreadArray)) {
                                 for (var _b = 0, spreadArray_1 = spreadArray; _b < spreadArray_1.length; _b++) {
                                     var spreadItem = spreadArray_1[_b];
@@ -69607,7 +70067,7 @@ var StaticReflector = (function () {
                 if (expression instanceof StaticSymbol) {
                     // Stop simplification at builtin symbols or if we are in a reference context
                     if (expression === self.injectionToken || expression === self.opaqueToken ||
-                        self.conversionMap.has(expression) || references > 0) {
+                        self.conversionMap.has(expression) || (references > 0 && !expression.members.length)) {
                         return expression;
                     }
                     else {
@@ -70607,6 +71067,7 @@ function createAotCompiler(compilerHost, options) {
         useJit: false,
         enableLegacyTemplate: options.enableLegacyTemplate !== false,
         missingTranslation: options.missingTranslation,
+        preserveWhitespaces: options.preserveWhitespaces,
     });
     var /** @type {?} */ normalizer = new DirectiveNormalizer({ get: function (url) { return compilerHost.loadResource(url); } }, urlResolver, htmlParser, config);
     var /** @type {?} */ expressionParser = new Parser(new Lexer());
@@ -71414,7 +71875,7 @@ function evalExpression(sourceUrl$$1, ctx, vars) {
         fnArgNames.push(argName);
         fnArgValues.push(vars[argName]);
     }
-    if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["isDevMode"])()) {
+    if (Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["isDevMode"])()) {
         // using `new Function(...)` generates a header, 1 line of no arguments, 2 lines otherwise
         // E.g. ```
         // function anonymous(a,b,c
@@ -71609,7 +72070,7 @@ var JitCompiler = (function () {
         this._console.warn('Compiler.getNgContentSelectors is deprecated. Use ComponentFactory.ngContentSelectors instead!');
         var /** @type {?} */ template = this._compiledTemplateCache.get(component);
         if (!template) {
-            throw new Error("The component " + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(component) + " is not yet compiled!");
+            throw new Error("The component " + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(component) + " is not yet compiled!");
         }
         return ((template.compMeta.template)).ngContentSelectors;
     };
@@ -71799,7 +72260,7 @@ var JitCompiler = (function () {
      */
     JitCompiler.prototype._createCompiledHostTemplate = function (compType, ngModule) {
         if (!ngModule) {
-            throw new Error("Component " + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(compType) + " is not part of any NgModule or the module has not been imported into your module.");
+            throw new Error("Component " + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(compType) + " is not part of any NgModule or the module has not been imported into your module.");
         }
         var /** @type {?} */ compiledTemplate = this._compiledHostTemplateCache.get(compType);
         if (!compiledTemplate) {
@@ -71807,7 +72268,7 @@ var JitCompiler = (function () {
             assertComponent(compMeta);
             var /** @type {?} */ componentFactory = (compMeta.componentFactory);
             var /** @type {?} */ hostClass = this._metadataResolver.getHostComponentType(compType);
-            var /** @type {?} */ hostMeta = createHostComponentMeta(hostClass, compMeta, /** @type {?} */ (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵgetComponentViewDefinitionFactory"])(componentFactory)));
+            var /** @type {?} */ hostMeta = createHostComponentMeta(hostClass, compMeta, /** @type {?} */ (Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵgetComponentViewDefinitionFactory"])(componentFactory)));
             compiledTemplate =
                 new CompiledTemplate(true, compMeta.type, hostMeta, ngModule, [compMeta.type]);
             this._compiledHostTemplateCache.set(compType, compiledTemplate);
@@ -71840,7 +72301,8 @@ var JitCompiler = (function () {
         var /** @type {?} */ compMeta = template.compMeta;
         var /** @type {?} */ externalStylesheetsByModuleUrl = new Map();
         var /** @type {?} */ outputContext = createOutputContext();
-        var /** @type {?} */ componentStylesheet = this._styleCompiler.compileComponent(outputContext, compMeta); /** @type {?} */
+        var /** @type {?} */ componentStylesheet = this._styleCompiler.compileComponent(outputContext, compMeta);
+        var /** @type {?} */ preserveWhitespaces = ((((compMeta)).template)).preserveWhitespaces; /** @type {?} */
         ((compMeta.template)).externalStylesheets.forEach(function (stylesheetMeta) {
             var /** @type {?} */ compiledStylesheet = _this._styleCompiler.compileStyles(createOutputContext(), compMeta, stylesheetMeta);
             externalStylesheetsByModuleUrl.set(/** @type {?} */ ((stylesheetMeta.moduleUrl)), compiledStylesheet);
@@ -71848,7 +72310,7 @@ var JitCompiler = (function () {
         this._resolveStylesCompileResult(componentStylesheet, externalStylesheetsByModuleUrl);
         var /** @type {?} */ directives = template.directives.map(function (dir) { return _this._metadataResolver.getDirectiveSummary(dir.reference); });
         var /** @type {?} */ pipes = template.ngModule.transitiveModule.pipes.map(function (pipe) { return _this._metadataResolver.getPipeSummary(pipe.reference); });
-        var _a = this._templateParser.parse(compMeta, /** @type {?} */ ((((compMeta.template)).template)), directives, pipes, template.ngModule.schemas, templateSourceUrl(template.ngModule.type, template.compMeta, /** @type {?} */ ((template.compMeta.template)))), parsedTemplate = _a.template, usedPipes = _a.pipes;
+        var _a = this._templateParser.parse(compMeta, /** @type {?} */ ((((compMeta.template)).template)), directives, pipes, template.ngModule.schemas, templateSourceUrl(template.ngModule.type, template.compMeta, /** @type {?} */ ((template.compMeta.template))), preserveWhitespaces), parsedTemplate = _a.template, usedPipes = _a.pipes;
         var /** @type {?} */ compileResult = this._viewCompiler.compileComponent(outputContext, compMeta, parsedTemplate, variable(componentStylesheet.stylesVar), usedPipes);
         var /** @type {?} */ evalResult;
         if (!this._compilerConfig.useJit) {
@@ -72279,10 +72741,10 @@ var JitReflector = (function () {
             return scheme ? moduleId : "package:" + moduleId + MODULE_SUFFIX;
         }
         else if (moduleId !== null && moduleId !== void 0) {
-            throw syntaxError("moduleId should be a string in \"" + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type) + "\". See https://goo.gl/wIDDiL for more information.\n" +
+            throw syntaxError("moduleId should be a string in \"" + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type) + "\". See https://goo.gl/wIDDiL for more information.\n" +
                 "If you're using Webpack you should inline the template and the styles, see https://goo.gl/X2J8zc.");
         }
-        return "./" + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type);
+        return "./" + Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵstringify"])(type);
     };
     /**
      * @param {?} typeOrFunc
@@ -72395,11 +72857,12 @@ var JitCompilerFactory = (function () {
      */
     function JitCompilerFactory(defaultOptions) {
         var compilerOptions = {
-            useDebug: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["isDevMode"])(),
+            useDebug: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["isDevMode"])(),
             useJit: true,
             defaultEncapsulation: __WEBPACK_IMPORTED_MODULE_1__angular_core__["ViewEncapsulation"].Emulated,
             missingTranslation: __WEBPACK_IMPORTED_MODULE_1__angular_core__["MissingTranslationStrategy"].Warning,
             enableLegacyTemplate: true,
+            preserveWhitespaces: true,
         };
         this._defaultOptions = [compilerOptions].concat(defaultOptions);
     }
@@ -72423,6 +72886,7 @@ var JitCompilerFactory = (function () {
                         defaultEncapsulation: opts.defaultEncapsulation,
                         missingTranslation: opts.missingTranslation,
                         enableLegacyTemplate: opts.enableLegacyTemplate,
+                        preserveWhitespaces: opts.preserveWhitespaces,
                     });
                 },
                 deps: []
@@ -72446,7 +72910,7 @@ JitCompilerFactory.ctorParameters = function () { return [
  *
  * \@experimental
  */
-var platformCoreDynamic = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["createPlatformFactory"])(__WEBPACK_IMPORTED_MODULE_1__angular_core__["platformCore"], 'coreDynamic', [
+var platformCoreDynamic = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["createPlatformFactory"])(__WEBPACK_IMPORTED_MODULE_1__angular_core__["platformCore"], 'coreDynamic', [
     { provide: __WEBPACK_IMPORTED_MODULE_1__angular_core__["COMPILER_OPTIONS"], useValue: {}, multi: true },
     { provide: __WEBPACK_IMPORTED_MODULE_1__angular_core__["CompilerFactory"], useClass: JitCompilerFactory },
 ]);
@@ -72461,6 +72925,7 @@ function _mergeOptions(optionsArr) {
         providers: _mergeArrays(optionsArr.map(function (options) { return ((options.providers)); })),
         missingTranslation: _lastDefined(optionsArr.map(function (options) { return options.missingTranslation; })),
         enableLegacyTemplate: _lastDefined(optionsArr.map(function (options) { return options.enableLegacyTemplate; })),
+        preserveWhitespaces: _lastDefined(optionsArr.map(function (options) { return options.preserveWhitespaces; })),
     };
 }
 /**
@@ -72531,17 +72996,8 @@ function _mergeArrays(parts) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* WEBPACK VAR INJECTION */(function(global) {Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_Observable__ = __webpack_require__("../../../../rxjs/Observable.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_Observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_rxjs_Observable__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_observable_merge__ = __webpack_require__("../../../../rxjs/observable/merge.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_observable_merge___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_observable_merge__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_share__ = __webpack_require__("../../../../rxjs/operator/share.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_share___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_rxjs_operator_share__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_Subject__ = __webpack_require__("../../../../rxjs/Subject.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_Subject___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_rxjs_Subject__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Class", function() { return Class; });
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* WEBPACK VAR INJECTION */(function(global) {/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Class", function() { return Class; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createPlatform", function() { return createPlatform; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "assertPlatform", function() { return assertPlatform; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "destroyPlatform", function() { return destroyPlatform; });
@@ -72735,9 +73191,18 @@ function _mergeArrays(parts) {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ɵa", function() { return makeParamDecorator; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ɵt", function() { return _def; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ɵu", function() { return DebugContext; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_Observable__ = __webpack_require__("../../../../rxjs/Observable.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_rxjs_Observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_rxjs_Observable__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_observable_merge__ = __webpack_require__("../../../../rxjs/observable/merge.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_observable_merge___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_observable_merge__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_share__ = __webpack_require__("../../../../rxjs/operator/share.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_share___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_rxjs_operator_share__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_Subject__ = __webpack_require__("../../../../rxjs/Subject.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_Subject___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_rxjs_Subject__);
 
 /**
- * @license Angular v4.3.4
+ * @license Angular v4.4.4
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -73533,7 +73998,7 @@ var Version = (function () {
 /**
  * \@stable
  */
-var VERSION = new Version('4.3.4');
+var VERSION = new Version('4.4.4');
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -77428,16 +77893,21 @@ var ApplicationRef_ = (function (_super) {
             });
         });
         var isStable = new __WEBPACK_IMPORTED_MODULE_1_rxjs_Observable__["Observable"](function (observer) {
-            var stableSub = _this._zone.onStable.subscribe(function () {
-                NgZone.assertNotInAngularZone();
-                // Check whether there are no pending macro/micro tasks in the next tick
-                // to allow for NgZone to update the state.
-                scheduleMicroTask(function () {
-                    if (!_this._stable && !_this._zone.hasPendingMacrotasks &&
-                        !_this._zone.hasPendingMicrotasks) {
-                        _this._stable = true;
-                        observer.next(true);
-                    }
+            // Create the subscription to onStable outside the Angular Zone so that
+            // the callback is run outside the Angular Zone.
+            var stableSub;
+            _this._zone.runOutsideAngular(function () {
+                stableSub = _this._zone.onStable.subscribe(function () {
+                    NgZone.assertNotInAngularZone();
+                    // Check whether there are no pending macro/micro tasks in the next tick
+                    // to allow for NgZone to update the state.
+                    scheduleMicroTask(function () {
+                        if (!_this._stable && !_this._zone.hasPendingMacrotasks &&
+                            !_this._zone.hasPendingMicrotasks) {
+                            _this._stable = true;
+                            observer.next(true);
+                        }
+                    });
                 });
             });
             var unstableSub = _this._zone.onUnstable.subscribe(function () {
@@ -77452,7 +77922,7 @@ var ApplicationRef_ = (function (_super) {
                 unstableSub.unsubscribe();
             };
         });
-        _this._isStable = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2_rxjs_observable_merge__["merge"])(isCurrentlyStable, __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_share__["share"].call(isStable));
+        _this._isStable = Object(__WEBPACK_IMPORTED_MODULE_2_rxjs_observable_merge__["merge"])(isCurrentlyStable, __WEBPACK_IMPORTED_MODULE_3_rxjs_operator_share__["share"].call(isStable));
         return _this;
     }
     /**
@@ -78311,6 +78781,14 @@ var QueryList = (function () {
         enumerable: true,
         configurable: true
     });
+    /**
+     * internal
+     * @return {?}
+     */
+    QueryList.prototype.destroy = function () {
+        this._emitter.complete();
+        this._emitter.unsubscribe();
+    };
     return QueryList;
 }());
 /**
@@ -78380,7 +78858,7 @@ var SystemJsNgModuleLoader = (function () {
         if (exportName === undefined) {
             exportName = 'default';
         }
-        return __webpack_require__("../../../../../src async recursive")(module)
+        return __webpack_require__("../../../../../src/$$_gendir lazy recursive")(module)
             .then(function (module) { return module[exportName]; })
             .then(function (type) { return checkNotEmpty(type, module, exportName); })
             .then(function (type) { return _this._compiler.compileModuleAsync(type); });
@@ -78396,7 +78874,7 @@ var SystemJsNgModuleLoader = (function () {
             exportName = 'default';
             factoryClassSuffix = '';
         }
-        return __webpack_require__("../../../../../src async recursive")(this._config.factoryPathPrefix + module + this._config.factoryPathSuffix)
+        return __webpack_require__("../../../../../src/$$_gendir lazy recursive")(this._config.factoryPathPrefix + module + this._config.factoryPathSuffix)
             .then(function (module) { return module[exportName + factoryClassSuffix]; })
             .then(function (factory) { return checkNotEmpty(factory, module, exportName); });
     };
@@ -78638,7 +79116,7 @@ var ChangeDetectorRef = (function () {
      *
      *   constructor(private ref: ChangeDetectorRef) {
      *     setInterval(() => {
-     *       this.numberOfTicks ++
+     *       this.numberOfTicks++;
      *       // the following is required, otherwise the view will not be updated
      *       this.ref.markForCheck();
      *     }, 1000);
@@ -78689,11 +79167,11 @@ var ChangeDetectorRef = (function () {
      * \@Component({
      *   selector: 'giant-list',
      *   template: `
-     *     <li *ngFor="let d of dataProvider.data">Data {{d}}</lig>
+     *     <li *ngFor="let d of dataProvider.data">Data {{d}}</li>
      *   `,
      * })
      * class GiantList {
-     *   constructor(private ref: ChangeDetectorRef, private dataProvider:DataProvider) {
+     *   constructor(private ref: ChangeDetectorRef, private dataProvider: DataProvider) {
      *     ref.detach();
      *     setInterval(() => {
      *       this.ref.detectChanges();
@@ -78780,13 +79258,14 @@ var ChangeDetectorRef = (function () {
      *   template: 'Data: {{dataProvider.data}}'
      * })
      * class LiveData {
-     *   constructor(private ref: ChangeDetectorRef, private dataProvider:DataProvider) {}
+     *   constructor(private ref: ChangeDetectorRef, private dataProvider: DataProvider) {}
      *
      *   set live(value) {
-     *     if (value)
+     *     if (value) {
      *       this.ref.reattach();
-     *     else
+     *     } else {
      *       this.ref.detach();
+     *     }
      *   }
      * }
      *
@@ -82804,6 +83283,9 @@ var ViewContainerRef_ = (function () {
      * @return {?}
      */
     ViewContainerRef_.prototype.insert = function (viewRef, index) {
+        if (viewRef.destroyed) {
+            throw new Error('Cannot insert a destroyed View in a ViewContainer!');
+        }
         var /** @type {?} */ viewRef_ = (viewRef);
         var /** @type {?} */ viewData = viewRef_._view;
         attachEmbeddedView(this._view, this._data, index, viewData);
@@ -82816,6 +83298,9 @@ var ViewContainerRef_ = (function () {
      * @return {?}
      */
     ViewContainerRef_.prototype.move = function (viewRef, currentIndex) {
+        if (viewRef.destroyed) {
+            throw new Error('Cannot move a destroyed View in a ViewContainer!');
+        }
         var /** @type {?} */ previousIndex = this._embeddedViews.indexOf(viewRef._view);
         moveEmbeddedView(this._data, previousIndex, currentIndex);
         return viewRef;
@@ -84075,8 +84560,13 @@ function calcQueryValues(view, startIndex, endIndex, queryDef, values) {
         if (nodeDef.flags & 1 /* TypeElement */ && ((nodeDef.element)).template &&
             (((((nodeDef.element)).template)).nodeMatchedQueries & queryDef.filterId) ===
                 queryDef.filterId) {
-            // check embedded views that were attached at the place of their template.
             var /** @type {?} */ elementData = asElementData(view, i);
+            // check embedded views that were attached at the place of their template,
+            // but process child nodes first if some match the query (see issue #16568)
+            if ((nodeDef.childMatchedQueries & queryDef.filterId) === queryDef.filterId) {
+                calcQueryValues(view, i + 1, i + nodeDef.childCount, queryDef, values);
+                i += nodeDef.childCount;
+            }
             if (nodeDef.flags & 16777216 /* EmbeddedViews */) {
                 var /** @type {?} */ embeddedViews = ((elementData.viewContainer))._embeddedViews;
                 for (var /** @type {?} */ k = 0; k < embeddedViews.length; k++) {
@@ -84633,33 +85123,19 @@ function viewDef(flags, nodes, updateDirectives, updateRenderer) {
     var /** @type {?} */ viewRootNodeFlags = 0;
     var /** @type {?} */ viewMatchedQueries = 0;
     var /** @type {?} */ currentParent = null;
+    var /** @type {?} */ currentRenderParent = null;
     var /** @type {?} */ currentElementHasPublicProviders = false;
     var /** @type {?} */ currentElementHasPrivateProviders = false;
     var /** @type {?} */ lastRenderRootNode = null;
     for (var /** @type {?} */ i = 0; i < nodes.length; i++) {
-        while (currentParent && i > currentParent.index + currentParent.childCount) {
-            var /** @type {?} */ newParent = currentParent.parent;
-            if (newParent) {
-                newParent.childFlags |= ((currentParent.childFlags));
-                newParent.childMatchedQueries |= currentParent.childMatchedQueries;
-            }
-            currentParent = newParent;
-        }
         var /** @type {?} */ node = nodes[i];
         node.index = i;
         node.parent = currentParent;
         node.bindingIndex = viewBindingCount;
         node.outputIndex = viewDisposableCount;
-        // renderParent needs to account for ng-container!
-        var /** @type {?} */ currentRenderParent = void 0;
-        if (currentParent && currentParent.flags & 1 /* TypeElement */ &&
-            !((currentParent.element)).name) {
-            currentRenderParent = currentParent.renderParent;
-        }
-        else {
-            currentRenderParent = currentParent;
-        }
         node.renderParent = currentRenderParent;
+        viewNodeFlags |= node.flags;
+        viewMatchedQueries |= node.matchedQueryIds;
         if (node.element) {
             var /** @type {?} */ elDef = node.element;
             elDef.publicProviders =
@@ -84668,24 +85144,11 @@ function viewDef(flags, nodes, updateDirectives, updateRenderer) {
             // Note: We assume that all providers of an element are before any child element!
             currentElementHasPublicProviders = false;
             currentElementHasPrivateProviders = false;
-        }
-        validateNode(currentParent, node, nodes.length);
-        viewNodeFlags |= node.flags;
-        viewMatchedQueries |= node.matchedQueryIds;
-        if (node.element && node.element.template) {
-            viewMatchedQueries |= node.element.template.nodeMatchedQueries;
-        }
-        if (currentParent) {
-            currentParent.childFlags |= node.flags;
-            currentParent.directChildFlags |= node.flags;
-            currentParent.childMatchedQueries |= node.matchedQueryIds;
-            if (node.element && node.element.template) {
-                currentParent.childMatchedQueries |= node.element.template.nodeMatchedQueries;
+            if (node.element.template) {
+                viewMatchedQueries |= node.element.template.nodeMatchedQueries;
             }
         }
-        else {
-            viewRootNodeFlags |= node.flags;
-        }
+        validateNode(currentParent, node, nodes.length);
         viewBindingCount += node.bindings.length;
         viewDisposableCount += node.outputs.length;
         if (!currentRenderParent && (node.flags & 3 /* CatRenderNode */)) {
@@ -84709,7 +85172,7 @@ function viewDef(flags, nodes, updateDirectives, updateRenderer) {
                 if (!currentElementHasPrivateProviders) {
                     currentElementHasPrivateProviders = true; /** @type {?} */
                     ((((
-                    // Use protoyypical inheritance to not get O(n^2) complexity...
+                    // Use prototypical inheritance to not get O(n^2) complexity...
                     currentParent)).element)).allProviders =
                         Object.create(/** @type {?} */ ((((currentParent)).element)).publicProviders);
                 } /** @type {?} */
@@ -84719,17 +85182,45 @@ function viewDef(flags, nodes, updateDirectives, updateRenderer) {
                 ((((currentParent)).element)).componentProvider = node;
             }
         }
-        if (node.childCount) {
+        if (currentParent) {
+            currentParent.childFlags |= node.flags;
+            currentParent.directChildFlags |= node.flags;
+            currentParent.childMatchedQueries |= node.matchedQueryIds;
+            if (node.element && node.element.template) {
+                currentParent.childMatchedQueries |= node.element.template.nodeMatchedQueries;
+            }
+        }
+        else {
+            viewRootNodeFlags |= node.flags;
+        }
+        if (node.childCount > 0) {
             currentParent = node;
+            if (!isNgContainer(node)) {
+                currentRenderParent = node;
+            }
         }
-    }
-    while (currentParent) {
-        var /** @type {?} */ newParent = currentParent.parent;
-        if (newParent) {
-            newParent.childFlags |= currentParent.childFlags;
-            newParent.childMatchedQueries |= currentParent.childMatchedQueries;
+        else {
+            // When the current node has no children, check if it is the last children of its parent.
+            // When it is, propagate the flags up.
+            // The loop is required because an element could be the last transitive children of several
+            // elements. We loop to either the root or the highest opened element (= with remaining
+            // children)
+            while (currentParent && i === currentParent.index + currentParent.childCount) {
+                var /** @type {?} */ newParent = currentParent.parent;
+                if (newParent) {
+                    newParent.childFlags |= currentParent.childFlags;
+                    newParent.childMatchedQueries |= currentParent.childMatchedQueries;
+                }
+                currentParent = newParent;
+                // We also need to update the render parent & account for ng-container
+                if (currentParent && isNgContainer(currentParent)) {
+                    currentRenderParent = currentParent.renderParent;
+                }
+                else {
+                    currentRenderParent = currentParent;
+                }
+            }
         }
-        currentParent = newParent;
     }
     var /** @type {?} */ handleEvent = function (view, nodeIndex, eventName, event) { return ((((nodes[nodeIndex].element)).handleEvent))(view, eventName, event); };
     return {
@@ -84740,11 +85231,17 @@ function viewDef(flags, nodes, updateDirectives, updateRenderer) {
         nodeMatchedQueries: viewMatchedQueries, flags: flags,
         nodes: nodes,
         updateDirectives: updateDirectives || NOOP,
-        updateRenderer: updateRenderer || NOOP,
-        handleEvent: handleEvent || NOOP,
+        updateRenderer: updateRenderer || NOOP, handleEvent: handleEvent,
         bindingCount: viewBindingCount,
         outputCount: viewDisposableCount, lastRenderRootNode: lastRenderRootNode
     };
+}
+/**
+ * @param {?} node
+ * @return {?}
+ */
+function isNgContainer(node) {
+    return (node.flags & 1 /* TypeElement */) !== 0 && ((node.element)).name === null;
 }
 /**
  * @param {?} parent
@@ -85239,6 +85736,9 @@ function destroyViewNodes(view) {
         }
         else if (def.flags & 2 /* TypeText */) {
             ((view.renderer.destroyNode))(asTextData(view, i).renderText);
+        }
+        else if (def.flags & 67108864 /* TypeContentQuery */ || def.flags & 134217728 /* TypeViewQuery */) {
+            asQueryList(view, i).destroy();
         }
     }
 }
@@ -86631,11 +87131,12 @@ var NgModuleFactory_ = (function (_super) {
  * <div [\@myAnimationTrigger]="myStatusExp">...</div>
  * ```
  *
- * ## Disable Child Animations
+ * ## Disable Animations
  * A special animation control binding called `\@.disabled` can be placed on an element which will
- * then disable animations for any inner animation triggers situated within the element.
+ * then disable animations for any inner animation triggers situated within the element as well as
+ * any animations on the element itself.
  *
- * When true, the `\@.disabled` binding will prevent inner animations from rendering. The example
+ * When true, the `\@.disabled` binding will prevent all animations from rendering. The example
  * below shows how to use this feature:
  *
  * ```ts
@@ -86661,8 +87162,8 @@ var NgModuleFactory_ = (function (_super) {
  * The `\@childAnimation` trigger will not animate because `\@.disabled` prevents it from happening
  * (when true).
  *
- * Note that `\@.disbled` will only disable inner animations (any animations running on the same
- * element will not be disabled).
+ * Note that `\@.disbled` will only disable all animations (this means any animations running on
+ * the same element will also be disabled).
  *
  * ### Disabling Animations Application-wide
  * When an area of the template is set to have animations disabled, **all** inner components will
@@ -87537,20 +88038,11 @@ function transition$$1(stateChangeExpr, steps) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_observable_forkJoin__ = __webpack_require__("../../../../rxjs/observable/forkJoin.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_observable_forkJoin___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_observable_forkJoin__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_observable_fromPromise__ = __webpack_require__("../../../../rxjs/observable/fromPromise.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_observable_fromPromise___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_rxjs_observable_fromPromise__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map__ = __webpack_require__("../../../../rxjs/operator/map.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__angular_platform_browser__ = __webpack_require__("../../../platform-browser/@angular/platform-browser.es5.js");
 /* unused harmony export AbstractControlDirective */
 /* unused harmony export AbstractFormGroupDirective */
 /* unused harmony export CheckboxControlValueAccessor */
 /* unused harmony export ControlContainer */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NG_VALUE_ACCESSOR; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return NG_VALUE_ACCESSOR; });
 /* unused harmony export COMPOSITION_BUFFER_MODE */
 /* unused harmony export DefaultValueAccessor */
 /* unused harmony export NgControl */
@@ -87580,7 +88072,7 @@ function transition$$1(stateChangeExpr, steps) {
 /* unused harmony export FormControl */
 /* unused harmony export FormGroup */
 /* unused harmony export NG_ASYNC_VALIDATORS */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return NG_VALIDATORS; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return NG_VALIDATORS; });
 /* unused harmony export Validators */
 /* unused harmony export VERSION */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return FormsModule; });
@@ -87617,9 +88109,18 @@ function transition$$1(stateChangeExpr, steps) {
 /* unused harmony export ɵu */
 /* unused harmony export ɵw */
 /* unused harmony export ɵr */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_observable_forkJoin__ = __webpack_require__("../../../../rxjs/observable/forkJoin.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_observable_forkJoin___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_observable_forkJoin__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_observable_fromPromise__ = __webpack_require__("../../../../rxjs/observable/fromPromise.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_rxjs_observable_fromPromise___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_rxjs_observable_fromPromise__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map__ = __webpack_require__("../../../../rxjs/operator/map.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__angular_platform_browser__ = __webpack_require__("../../../platform-browser/@angular/platform-browser.es5.js");
 
 /**
- * @license Angular v4.3.4
+ * @license Angular v4.4.4
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -87647,12 +88148,16 @@ var AbstractControlDirective = (function () {
     function AbstractControlDirective() {
     }
     /**
+     * The {\@link FormControl}, {\@link FormGroup}, or {\@link FormArray}
+     * that backs this directive. Most properties fall through to that
+     * instance.
      * @abstract
      * @return {?}
      */
     AbstractControlDirective.prototype.control = function () { };
     Object.defineProperty(AbstractControlDirective.prototype, "value", {
         /**
+         * The value of the control.
          * @return {?}
          */
         get: function () { return this.control ? this.control.value : null; },
@@ -87661,6 +88166,10 @@ var AbstractControlDirective = (function () {
     });
     Object.defineProperty(AbstractControlDirective.prototype, "valid", {
         /**
+         * A control is `valid` when its `status === VALID`.
+         *
+         * In order to have this status, the control must have passed all its
+         * validation checks.
          * @return {?}
          */
         get: function () { return this.control ? this.control.valid : null; },
@@ -87669,6 +88178,10 @@ var AbstractControlDirective = (function () {
     });
     Object.defineProperty(AbstractControlDirective.prototype, "invalid", {
         /**
+         * A control is `invalid` when its `status === INVALID`.
+         *
+         * In order to have this status, the control must have failed
+         * at least one of its validation checks.
          * @return {?}
          */
         get: function () { return this.control ? this.control.invalid : null; },
@@ -87677,54 +88190,23 @@ var AbstractControlDirective = (function () {
     });
     Object.defineProperty(AbstractControlDirective.prototype, "pending", {
         /**
+         * A control is `pending` when its `status === PENDING`.
+         *
+         * In order to have this status, the control must be in the
+         * middle of conducting a validation check.
          * @return {?}
          */
         get: function () { return this.control ? this.control.pending : null; },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(AbstractControlDirective.prototype, "errors", {
-        /**
-         * @return {?}
-         */
-        get: function () { return this.control ? this.control.errors : null; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(AbstractControlDirective.prototype, "pristine", {
-        /**
-         * @return {?}
-         */
-        get: function () { return this.control ? this.control.pristine : null; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(AbstractControlDirective.prototype, "dirty", {
-        /**
-         * @return {?}
-         */
-        get: function () { return this.control ? this.control.dirty : null; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(AbstractControlDirective.prototype, "touched", {
-        /**
-         * @return {?}
-         */
-        get: function () { return this.control ? this.control.touched : null; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(AbstractControlDirective.prototype, "untouched", {
-        /**
-         * @return {?}
-         */
-        get: function () { return this.control ? this.control.untouched : null; },
-        enumerable: true,
-        configurable: true
-    });
     Object.defineProperty(AbstractControlDirective.prototype, "disabled", {
         /**
+         * A control is `disabled` when its `status === DISABLED`.
+         *
+         * Disabled controls are exempt from validation checks and
+         * are not included in the aggregate value of their ancestor
+         * controls.
          * @return {?}
          */
         get: function () { return this.control ? this.control.disabled : null; },
@@ -87733,14 +88215,76 @@ var AbstractControlDirective = (function () {
     });
     Object.defineProperty(AbstractControlDirective.prototype, "enabled", {
         /**
+         * A control is `enabled` as long as its `status !== DISABLED`.
+         *
+         * In other words, it has a status of `VALID`, `INVALID`, or
+         * `PENDING`.
          * @return {?}
          */
         get: function () { return this.control ? this.control.enabled : null; },
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(AbstractControlDirective.prototype, "errors", {
+        /**
+         * Returns any errors generated by failing validation. If there
+         * are no errors, it will return null.
+         * @return {?}
+         */
+        get: function () { return this.control ? this.control.errors : null; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AbstractControlDirective.prototype, "pristine", {
+        /**
+         * A control is `pristine` if the user has not yet changed
+         * the value in the UI.
+         *
+         * Note that programmatic changes to a control's value will
+         * *not* mark it dirty.
+         * @return {?}
+         */
+        get: function () { return this.control ? this.control.pristine : null; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AbstractControlDirective.prototype, "dirty", {
+        /**
+         * A control is `dirty` if the user has changed the value
+         * in the UI.
+         *
+         * Note that programmatic changes to a control's value will
+         * *not* mark it dirty.
+         * @return {?}
+         */
+        get: function () { return this.control ? this.control.dirty : null; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AbstractControlDirective.prototype, "touched", {
+        /**
+         * A control is marked `touched` once the user has triggered
+         * a `blur` event on it.
+         * @return {?}
+         */
+        get: function () { return this.control ? this.control.touched : null; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AbstractControlDirective.prototype, "untouched", {
+        /**
+         * A control is `untouched` if the user has not yet triggered
+         * a `blur` event on it.
+         * @return {?}
+         */
+        get: function () { return this.control ? this.control.untouched : null; },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(AbstractControlDirective.prototype, "statusChanges", {
         /**
+         * Emits an event every time the validation status of the control
+         * is re-calculated.
          * @return {?}
          */
         get: function () {
@@ -87751,6 +88295,8 @@ var AbstractControlDirective = (function () {
     });
     Object.defineProperty(AbstractControlDirective.prototype, "valueChanges", {
         /**
+         * Emits an event every time the value of the control changes, in
+         * the UI or programmatically.
          * @return {?}
          */
         get: function () {
@@ -87761,6 +88307,9 @@ var AbstractControlDirective = (function () {
     });
     Object.defineProperty(AbstractControlDirective.prototype, "path", {
         /**
+         * Returns an array that represents the path from the top-level form
+         * to this control. Each index is the string name of the control on
+         * that level.
          * @return {?}
          */
         get: function () { return null; },
@@ -87768,6 +88317,13 @@ var AbstractControlDirective = (function () {
         configurable: true
     });
     /**
+     * Resets the form control. This means by default:
+     *
+     * * it is marked as `pristine`
+     * * it is marked as `untouched`
+     * * value is set to null
+     *
+     * For more information, see {\@link AbstractControl}.
      * @param {?=} value
      * @return {?}
      */
@@ -87777,6 +88333,10 @@ var AbstractControlDirective = (function () {
             this.control.reset(value);
     };
     /**
+     * Returns true if the control with the given path has the error specified. Otherwise
+     * returns false.
+     *
+     * If no path is given, it checks for the error on the present control.
      * @param {?} errorCode
      * @param {?=} path
      * @return {?}
@@ -87785,6 +88345,10 @@ var AbstractControlDirective = (function () {
         return this.control ? this.control.hasError(errorCode, path) : false;
     };
     /**
+     * Returns error data if the control with the given path has the error specified. Otherwise
+     * returns null or undefined.
+     *
+     * If no path is given, it checks for the error on the present control.
      * @param {?} errorCode
      * @param {?=} path
      * @return {?}
@@ -88030,7 +88594,7 @@ var Validators = (function () {
             return null;
         return function (control) {
             var /** @type {?} */ observables = _executeAsyncValidators(control, presentValidators).map(toObservable);
-            return __WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map__["map"].call(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2_rxjs_observable_forkJoin__["forkJoin"])(observables), _mergeErrors);
+            return __WEBPACK_IMPORTED_MODULE_4_rxjs_operator_map__["map"].call(Object(__WEBPACK_IMPORTED_MODULE_2_rxjs_observable_forkJoin__["forkJoin"])(observables), _mergeErrors);
         };
     };
     return Validators;
@@ -88047,8 +88611,8 @@ function isPresent(o) {
  * @return {?}
  */
 function toObservable(r) {
-    var /** @type {?} */ obs = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisPromise"])(r) ? __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3_rxjs_observable_fromPromise__["fromPromise"])(r) : r;
-    if (!(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisObservable"])(obs))) {
+    var /** @type {?} */ obs = Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisPromise"])(r) ? Object(__WEBPACK_IMPORTED_MODULE_3_rxjs_observable_fromPromise__["fromPromise"])(r) : r;
+    if (!(Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵisObservable"])(obs))) {
         throw new Error("Expected validator to return Promise or Observable.");
     }
     return obs;
@@ -88102,7 +88666,7 @@ var NG_VALUE_ACCESSOR = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Injecti
  */
 var CHECKBOX_VALUE_ACCESSOR = {
     provide: NG_VALUE_ACCESSOR,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return CheckboxControlValueAccessor; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return CheckboxControlValueAccessor; }),
     multi: true,
 };
 /**
@@ -88175,7 +88739,7 @@ CheckboxControlValueAccessor.ctorParameters = function () { return [
  */
 var DEFAULT_VALUE_ACCESSOR = {
     provide: NG_VALUE_ACCESSOR,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return DefaultValueAccessor; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return DefaultValueAccessor; }),
     multi: true
 };
 /**
@@ -88184,7 +88748,7 @@ var DEFAULT_VALUE_ACCESSOR = {
  * @return {?}
  */
 function _isAndroid() {
-    var /** @type {?} */ userAgent = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__angular_platform_browser__["ɵgetDOM"])() ? __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__angular_platform_browser__["ɵgetDOM"])().getUserAgent() : '';
+    var /** @type {?} */ userAgent = Object(__WEBPACK_IMPORTED_MODULE_5__angular_platform_browser__["ɵgetDOM"])() ? Object(__WEBPACK_IMPORTED_MODULE_5__angular_platform_browser__["ɵgetDOM"])().getUserAgent() : '';
     return /android (\d+)/.test(userAgent.toLowerCase());
 }
 /**
@@ -88337,7 +88901,7 @@ function normalizeAsyncValidator(validator) {
  */
 var NUMBER_VALUE_ACCESSOR = {
     provide: NG_VALUE_ACCESSOR,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return NumberValueAccessor; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return NumberValueAccessor; }),
     multi: true
 };
 /**
@@ -88483,7 +89047,7 @@ var NgControl = (function (_super) {
  */
 var RADIO_VALUE_ACCESSOR = {
     provide: NG_VALUE_ACCESSOR,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return RadioControlValueAccessor; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return RadioControlValueAccessor; }),
     multi: true
 };
 /**
@@ -88686,7 +89250,7 @@ RadioControlValueAccessor.propDecorators = {
  */
 var RANGE_VALUE_ACCESSOR = {
     provide: NG_VALUE_ACCESSOR,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return RangeValueAccessor; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return RangeValueAccessor; }),
     multi: true
 };
 /**
@@ -88764,7 +89328,7 @@ RangeValueAccessor.ctorParameters = function () { return [
  */
 var SELECT_VALUE_ACCESSOR = {
     provide: NG_VALUE_ACCESSOR,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return SelectControlValueAccessor; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return SelectControlValueAccessor; }),
     multi: true
 };
 /**
@@ -88903,8 +89467,8 @@ var SelectControlValueAccessor = (function () {
     SelectControlValueAccessor.prototype.registerOnChange = function (fn) {
         var _this = this;
         this.onChange = function (valueString) {
-            _this.value = valueString;
-            fn(_this._getOptionValue(valueString));
+            _this.value = _this._getOptionValue(valueString);
+            fn(_this.value);
         };
     };
     /**
@@ -89058,7 +89622,7 @@ NgSelectOption.propDecorators = {
  */
 var SELECT_MULTIPLE_VALUE_ACCESSOR = {
     provide: NG_VALUE_ACCESSOR,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return SelectMultipleControlValueAccessor; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return SelectMultipleControlValueAccessor; }),
     multi: true
 };
 /**
@@ -89499,7 +90063,7 @@ function isPropertyUpdated(changes, viewModel) {
     var /** @type {?} */ change = changes['model'];
     if (change.isFirstChange())
         return true;
-    return !__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵlooseIdentical"])(viewModel, change.currentValue);
+    return !Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["ɵlooseIdentical"])(viewModel, change.currentValue);
 }
 var BUILTIN_ACCESSORS = [
     CheckboxControlValueAccessor,
@@ -90344,7 +90908,7 @@ var AbstractControl = (function () {
      */
     AbstractControl.prototype.get = function (path) { return _find(this, path, '.'); };
     /**
-     * Returns true if the control with the given path has the error specified. Otherwise
+     * Returns error data if the control with the given path has the error specified. Otherwise
      * returns null or undefined.
      *
      * If no path is given, it checks for the error on the present control.
@@ -91411,7 +91975,7 @@ var FormArray = (function (_super) {
  */
 var formDirectiveProvider = {
     provide: ControlContainer,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return NgForm; })
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return NgForm; })
 };
 var resolvedPromise = Promise.resolve(null);
 /**
@@ -91687,7 +92251,7 @@ var TemplateDrivenErrors = (function () {
  */
 var modelGroupProvider = {
     provide: ControlContainer,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return NgModelGroup; })
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return NgModelGroup; })
 };
 /**
  * \@whatItDoes Creates and binds a {\@link FormGroup} instance to a DOM element.
@@ -91762,7 +92326,7 @@ NgModelGroup.propDecorators = {
  */
 var formControlBinding = {
     provide: NgControl,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return NgModel; })
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return NgModel; })
 };
 /**
  * `ngModel` forces an additional change detection run when its inputs change:
@@ -92096,7 +92660,7 @@ var ReactiveErrors = (function () {
  */
 var formControlBinding$1 = {
     provide: NgControl,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return FormControlDirective; })
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return FormControlDirective; })
 };
 /**
  * \@whatItDoes Syncs a standalone {\@link FormControl} instance to a form control element.
@@ -92122,12 +92686,12 @@ var formControlBinding$1 = {
  * {\@link AbstractControl}.
  *
  * **Set the value**: You can pass in an initial value when instantiating the {\@link FormControl},
- * or you can set it programmatically later using {\@link AbstractControl#setValue} or
- * {\@link AbstractControl#patchValue}.
+ * or you can set it programmatically later using {\@link AbstractControl#setValue setValue} or
+ * {\@link AbstractControl#patchValue patchValue}.
  *
  * **Listen to value**: If you want to listen to changes in the value of the control, you can
- * subscribe to the {\@link AbstractControl#valueChanges} event.  You can also listen to
- * {\@link AbstractControl#statusChanges} to be notified when the validation status is
+ * subscribe to the {\@link AbstractControl#valueChanges valueChanges} event.  You can also listen to
+ * {\@link AbstractControl#statusChanges statusChanges} to be notified when the validation status is
  * re-calculated.
  *
  * ### Example
@@ -92258,7 +92822,7 @@ FormControlDirective.propDecorators = {
  */
 var formDirectiveProvider$1 = {
     provide: ControlContainer,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return FormGroupDirective; })
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return FormGroupDirective; })
 };
 /**
  * \@whatItDoes Binds an existing {\@link FormGroup} to a DOM element.
@@ -92272,12 +92836,13 @@ var formDirectiveProvider$1 = {
  *
  * **Set value**: You can set the form's initial value when instantiating the
  * {\@link FormGroup}, or you can set it programmatically later using the {\@link FormGroup}'s
- * {\@link AbstractControl#setValue} or {\@link AbstractControl#patchValue} methods.
+ * {\@link AbstractControl#setValue setValue} or {\@link AbstractControl#patchValue patchValue}
+ * methods.
  *
  * **Listen to value**: If you want to listen to changes in the value of the form, you can subscribe
- * to the {\@link FormGroup}'s {\@link AbstractControl#valueChanges} event.  You can also listen to
- * its {\@link AbstractControl#statusChanges} event to be notified when the validation status is
- * re-calculated.
+ * to the {\@link FormGroup}'s {\@link AbstractControl#valueChanges valueChanges} event.  You can also
+ * listen to its {\@link AbstractControl#statusChanges statusChanges} event to be notified when the
+ * validation status is re-calculated.
  *
  * Furthermore, you can listen to the directive's `ngSubmit` event to be notified when the user has
  * triggered a form submission. The `ngSubmit` event will be emitted with the original form
@@ -92531,7 +93096,7 @@ function remove(list, el) {
  */
 var formGroupNameProvider = {
     provide: ControlContainer,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return FormGroupName; })
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return FormGroupName; })
 };
 /**
  * \@whatItDoes Syncs a nested {\@link FormGroup} to a DOM element.
@@ -92560,11 +93125,11 @@ var formGroupNameProvider = {
  *
  * **Set the value**: You can set an initial value for each child control when instantiating
  * the {\@link FormGroup}, or you can set it programmatically later using
- * {\@link AbstractControl#setValue} or {\@link AbstractControl#patchValue}.
+ * {\@link AbstractControl#setValue setValue} or {\@link AbstractControl#patchValue patchValue}.
  *
  * **Listen to value**: If you want to listen to changes in the value of the group, you can
- * subscribe to the {\@link AbstractControl#valueChanges} event.  You can also listen to
- * {\@link AbstractControl#statusChanges} to be notified when the validation status is
+ * subscribe to the {\@link AbstractControl#valueChanges valueChanges} event.  You can also listen to
+ * {\@link AbstractControl#statusChanges statusChanges} to be notified when the validation status is
  * re-calculated.
  *
  * ### Example
@@ -92618,7 +93183,7 @@ FormGroupName.propDecorators = {
 };
 var formArrayNameProvider = {
     provide: ControlContainer,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return FormArrayName; })
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return FormArrayName; })
 };
 /**
  * \@whatItDoes Syncs a nested {\@link FormArray} to a DOM element.
@@ -92781,7 +93346,7 @@ function _hasInvalidParent(parent) {
  */
 var controlNameBinding = {
     provide: NgControl,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return FormControlName; })
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return FormControlName; })
 };
 /**
  * \@whatItDoes Syncs a {\@link FormControl} in an existing {\@link FormGroup} to a form control
@@ -92802,7 +93367,7 @@ var controlNameBinding = {
  * closest {\@link FormGroup} or {\@link FormArray} above it.
  *
  * **Access the control**: You can access the {\@link FormControl} associated with
- * this directive by using the {\@link AbstractControl#get} method.
+ * this directive by using the {\@link AbstractControl#get get} method.
  * Ex: `this.form.get('first');`
  *
  * **Get value**: the `value` property is always synced and available on the {\@link FormControl}.
@@ -92810,11 +93375,11 @@ var controlNameBinding = {
  *
  *  **Set value**: You can set an initial value for the control when instantiating the
  *  {\@link FormControl}, or you can set it programmatically later using
- *  {\@link AbstractControl#setValue} or {\@link AbstractControl#patchValue}.
+ *  {\@link AbstractControl#setValue setValue} or {\@link AbstractControl#patchValue patchValue}.
  *
  * **Listen to value**: If you want to listen to changes in the value of the control, you can
- * subscribe to the {\@link AbstractControl#valueChanges} event.  You can also listen to
- * {\@link AbstractControl#statusChanges} to be notified when the validation status is
+ * subscribe to the {\@link AbstractControl#valueChanges valueChanges} event.  You can also listen to
+ * {\@link AbstractControl#statusChanges statusChanges} to be notified when the validation status is
  * re-calculated.
  *
  * ### Example
@@ -92984,12 +93549,12 @@ FormControlName.propDecorators = {
  */
 var REQUIRED_VALIDATOR = {
     provide: NG_VALIDATORS,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return RequiredValidator; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return RequiredValidator; }),
     multi: true
 };
 var CHECKBOX_REQUIRED_VALIDATOR = {
     provide: NG_VALIDATORS,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return CheckboxRequiredValidator; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return CheckboxRequiredValidator; }),
     multi: true
 };
 /**
@@ -93094,7 +93659,7 @@ CheckboxRequiredValidator.ctorParameters = function () { return []; };
  */
 var EMAIL_VALIDATOR = {
     provide: NG_VALIDATORS,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return EmailValidator; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return EmailValidator; }),
     multi: true
 };
 /**
@@ -93163,7 +93728,7 @@ EmailValidator.propDecorators = {
  */
 var MIN_LENGTH_VALIDATOR = {
     provide: NG_VALIDATORS,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return MinLengthValidator; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return MinLengthValidator; }),
     multi: true
 };
 /**
@@ -93229,7 +93794,7 @@ MinLengthValidator.propDecorators = {
  */
 var MAX_LENGTH_VALIDATOR = {
     provide: NG_VALIDATORS,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return MaxLengthValidator; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return MaxLengthValidator; }),
     multi: true
 };
 /**
@@ -93289,7 +93854,7 @@ MaxLengthValidator.propDecorators = {
 };
 var PATTERN_VALIDATOR = {
     provide: NG_VALIDATORS,
-    useExisting: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return PatternValidator; }),
+    useExisting: Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["forwardRef"])(function () { return PatternValidator; }),
     multi: true
 };
 /**
@@ -93480,7 +94045,7 @@ FormBuilder.ctorParameters = function () { return []; };
 /**
  * \@stable
  */
-var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.3.4');
+var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.4.4');
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -93653,11 +94218,6 @@ ReactiveFormsModule.ctorParameters = function () { return []; };
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_Observable__ = __webpack_require__("../../../../rxjs/Observable.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_Observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_Observable__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_platform_browser__ = __webpack_require__("../../../platform-browser/@angular/platform-browser.es5.js");
 /* unused harmony export BrowserXhr */
 /* unused harmony export JSONPBackend */
 /* unused harmony export JSONPConnection */
@@ -93673,17 +94233,17 @@ ReactiveFormsModule.ctorParameters = function () { return []; };
 /* unused harmony export ResponseContentType */
 /* unused harmony export ResponseType */
 /* unused harmony export Headers */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return Http; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Http; });
 /* unused harmony export Jsonp */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return HttpModule; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return JsonpModule; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return HttpModule; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return JsonpModule; });
 /* unused harmony export Connection */
 /* unused harmony export ConnectionBackend */
 /* unused harmony export XSRFStrategy */
 /* unused harmony export Request */
 /* unused harmony export Response */
 /* unused harmony export QueryEncoder */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return URLSearchParams; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return URLSearchParams; });
 /* unused harmony export VERSION */
 /* unused harmony export ɵg */
 /* unused harmony export ɵa */
@@ -93691,9 +94251,14 @@ ReactiveFormsModule.ctorParameters = function () { return []; };
 /* unused harmony export ɵb */
 /* unused harmony export ɵc */
 /* unused harmony export ɵd */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_Observable__ = __webpack_require__("../../../../rxjs/Observable.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_Observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_Observable__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_platform_browser__ = __webpack_require__("../../../platform-browser/@angular/platform-browser.es5.js");
 
 /**
- * @license Angular v4.3.4
+ * @license Angular v4.4.4
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -95033,7 +95598,7 @@ var CookieXSRFStrategy = (function () {
      * @return {?}
      */
     CookieXSRFStrategy.prototype.configureRequest = function (req) {
-        var /** @type {?} */ xsrfToken = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__angular_platform_browser__["ɵgetDOM"])().getCookie(this._cookieName);
+        var /** @type {?} */ xsrfToken = Object(__WEBPACK_IMPORTED_MODULE_3__angular_platform_browser__["ɵgetDOM"])().getCookie(this._cookieName);
         if (xsrfToken) {
             req.headers.set(this._headerName, xsrfToken);
         }
@@ -95848,7 +96413,7 @@ JsonpModule.ctorParameters = function () { return []; };
 /**
  * \@stable
  */
-var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.3.4');
+var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.4.4');
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -95882,19 +96447,19 @@ var VERSION = new __WEBPACK_IMPORTED_MODULE_1__angular_core__["Version"]('4.3.4'
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_compiler__ = __webpack_require__("../../../compiler/@angular/compiler.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__angular_platform_browser__ = __webpack_require__("../../../platform-browser/@angular/platform-browser.es5.js");
 /* unused harmony export RESOURCE_CACHE_PROVIDER */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return platformBrowserDynamic; });
 /* unused harmony export VERSION */
 /* unused harmony export ɵINTERNAL_BROWSER_DYNAMIC_PLATFORM_PROVIDERS */
 /* unused harmony export ɵResourceLoaderImpl */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_compiler__ = __webpack_require__("../../../compiler/@angular/compiler.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__angular_platform_browser__ = __webpack_require__("../../../platform-browser/@angular/platform-browser.es5.js");
 
 /**
- * @license Angular v4.3.4
+ * @license Angular v4.4.4
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -96027,7 +96592,7 @@ var CachedResourceLoader = (function (_super) {
 /**
  * @stable
  */
-var VERSION = new __WEBPACK_IMPORTED_MODULE_2__angular_core__["Version"]('4.3.4');
+var VERSION = new __WEBPACK_IMPORTED_MODULE_2__angular_core__["Version"]('4.4.4');
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -96042,7 +96607,7 @@ var RESOURCE_CACHE_PROVIDER = [{ provide: __WEBPACK_IMPORTED_MODULE_1__angular_c
 /**
  * @stable
  */
-var platformBrowserDynamic = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__angular_core__["createPlatformFactory"])(__WEBPACK_IMPORTED_MODULE_1__angular_compiler__["b" /* platformCoreDynamic */], 'browserDynamic', INTERNAL_BROWSER_DYNAMIC_PLATFORM_PROVIDERS);
+var platformBrowserDynamic = Object(__WEBPACK_IMPORTED_MODULE_2__angular_core__["createPlatformFactory"])(__WEBPACK_IMPORTED_MODULE_1__angular_compiler__["b" /* platformCoreDynamic */], 'browserDynamic', INTERNAL_BROWSER_DYNAMIC_PLATFORM_PROVIDERS);
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -96067,9 +96632,6 @@ var platformBrowserDynamic = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BrowserModule", function() { return BrowserModule; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "platformBrowser", function() { return platformBrowser; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Meta", function() { return Meta; });
@@ -96114,9 +96676,12 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ɵc", function() { return _createNgProbe; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ɵd", function() { return EventManagerPlugin; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ɵe", function() { return DomSanitizerImpl; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 
 /**
- * @license Angular v4.3.4
+ * @license Angular v4.4.4
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -97863,7 +98428,7 @@ var BrowserDomAdapter = (function (_super) {
      * @param {?} name
      * @return {?}
      */
-    BrowserDomAdapter.prototype.getCookie = function (name) { return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_common__["ɵparseCookieValue"])(document.cookie, name); };
+    BrowserDomAdapter.prototype.getCookie = function (name) { return Object(__WEBPACK_IMPORTED_MODULE_1__angular_common__["ɵparseCookieValue"])(document.cookie, name); };
     /**
      * @param {?} name
      * @param {?} value
@@ -98270,7 +98835,7 @@ var BrowserGetTestability = (function () {
     /**
      * @return {?}
      */
-    BrowserGetTestability.init = function () { __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__angular_core__["setTestabilityGetter"])(new BrowserGetTestability()); };
+    BrowserGetTestability.init = function () { Object(__WEBPACK_IMPORTED_MODULE_2__angular_core__["setTestabilityGetter"])(new BrowserGetTestability()); };
     /**
      * @param {?} registry
      * @return {?}
@@ -98427,7 +98992,7 @@ var CORE_TOKENS_GLOBAL_NAME = 'coreTokens';
  * @return {?}
  */
 function inspectNativeElement(element) {
-    return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__angular_core__["getDebugNode"])(element);
+    return Object(__WEBPACK_IMPORTED_MODULE_2__angular_core__["getDebugNode"])(element);
 }
 /**
  * Deprecated. Use the one from '\@angular/core'.
@@ -99509,7 +100074,7 @@ function sanitizeUrl(url) {
     url = String(url);
     if (url.match(SAFE_URL_PATTERN) || url.match(DATA_URL_PATTERN))
         return url;
-    if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__angular_core__["isDevMode"])()) {
+    if (Object(__WEBPACK_IMPORTED_MODULE_2__angular_core__["isDevMode"])()) {
         getDOM().log("WARNING: sanitizing unsafe URL value " + url + " (see http://g.co/ng/security#xss)");
     }
     return 'unsafe:' + url;
@@ -99818,7 +100383,7 @@ function sanitizeHtml(defaultDoc, unsafeHtmlInput) {
             var child = _a[_i];
             DOM.removeChild(parent, child);
         }
-        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__angular_core__["isDevMode"])() && sanitizer.sanitizedSomething) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_2__angular_core__["isDevMode"])() && sanitizer.sanitizedSomething) {
             DOM.log('WARNING: sanitizing HTML stripped some content (see http://g.co/ng/security#xss).');
         }
         return safeHtml;
@@ -99919,7 +100484,7 @@ function sanitizeStyle(value) {
         value.match(SAFE_STYLE_VALUE) && hasBalancedQuotes(value)) {
         return value; // Safe style values.
     }
-    if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__angular_core__["isDevMode"])()) {
+    if (Object(__WEBPACK_IMPORTED_MODULE_2__angular_core__["isDevMode"])()) {
         getDOM().log("WARNING: sanitizing unsafe style value " + value + " (see http://g.co/ng/security#xss).");
     }
     return 'unsafe';
@@ -100243,7 +100808,7 @@ var BROWSER_SANITIZATION_PROVIDERS = [
 /**
  * \@stable
  */
-var platformBrowser = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__angular_core__["createPlatformFactory"])(__WEBPACK_IMPORTED_MODULE_2__angular_core__["platformCore"], 'browser', INTERNAL_BROWSER_PLATFORM_PROVIDERS);
+var platformBrowser = Object(__WEBPACK_IMPORTED_MODULE_2__angular_core__["createPlatformFactory"])(__WEBPACK_IMPORTED_MODULE_2__angular_core__["platformCore"], 'browser', INTERNAL_BROWSER_PLATFORM_PROVIDERS);
 /**
  * @return {?}
  */
@@ -100523,7 +101088,7 @@ var By = (function () {
 /**
  * \@stable
  */
-var VERSION = new __WEBPACK_IMPORTED_MODULE_2__angular_core__["Version"]('4.3.4');
+var VERSION = new __WEBPACK_IMPORTED_MODULE_2__angular_core__["Version"]('4.4.4');
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -100557,11 +101122,6 @@ var VERSION = new __WEBPACK_IMPORTED_MODULE_2__angular_core__["Version"]('4.3.4'
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_platform_browser__ = __webpack_require__("../../../platform-browser/@angular/platform-browser.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_animations__ = __webpack_require__("../../../animations/@angular/animations.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__ = __webpack_require__("../../../animations/@angular/animations/browser.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return BrowserAnimationsModule; });
 /* unused harmony export NoopAnimationsModule */
 /* unused harmony export ɵBrowserAnimationBuilder */
@@ -100575,9 +101135,14 @@ var VERSION = new __WEBPACK_IMPORTED_MODULE_2__angular_core__["Version"]('4.3.4'
 /* unused harmony export ɵd */
 /* unused harmony export ɵe */
 /* unused harmony export ɵc */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_tslib__ = __webpack_require__("../../../../tslib/tslib.es6.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_platform_browser__ = __webpack_require__("../../../platform-browser/@angular/platform-browser.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_animations__ = __webpack_require__("../../../animations/@angular/animations.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__ = __webpack_require__("../../../animations/@angular/animations/browser.es5.js");
 
 /**
- * @license Angular v4.3.4
+ * @license Angular v4.4.4
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -100596,8 +101161,9 @@ var BrowserAnimationBuilder = (function (_super) {
     __WEBPACK_IMPORTED_MODULE_0_tslib__["a" /* __extends */](BrowserAnimationBuilder, _super);
     /**
      * @param {?} rootRenderer
+     * @param {?} doc
      */
-    function BrowserAnimationBuilder(rootRenderer) {
+    function BrowserAnimationBuilder(rootRenderer, doc) {
         var _this = _super.call(this) || this;
         _this._nextAnimationId = 0;
         var typeData = {
@@ -100606,7 +101172,7 @@ var BrowserAnimationBuilder = (function (_super) {
             styles: [],
             data: { animation: [] }
         };
-        _this._renderer = rootRenderer.createRenderer(document.body, typeData);
+        _this._renderer = rootRenderer.createRenderer(doc.body, typeData);
         return _this;
     }
     /**
@@ -100616,7 +101182,7 @@ var BrowserAnimationBuilder = (function (_super) {
     BrowserAnimationBuilder.prototype.build = function (animation) {
         var /** @type {?} */ id = this._nextAnimationId.toString();
         this._nextAnimationId++;
-        var /** @type {?} */ entry = Array.isArray(animation) ? __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__angular_animations__["a" /* sequence */])(animation) : animation;
+        var /** @type {?} */ entry = Array.isArray(animation) ? Object(__WEBPACK_IMPORTED_MODULE_3__angular_animations__["e" /* sequence */])(animation) : animation;
         issueAnimationCommand(this._renderer, null, id, 'register', [entry]);
         return new BrowserAnimationFactory(id, this._renderer);
     };
@@ -100630,6 +101196,7 @@ BrowserAnimationBuilder.decorators = [
  */
 BrowserAnimationBuilder.ctorParameters = function () { return [
     { type: __WEBPACK_IMPORTED_MODULE_1__angular_core__["RendererFactory2"], },
+    { type: undefined, decorators: [{ type: __WEBPACK_IMPORTED_MODULE_1__angular_core__["Inject"], args: [__WEBPACK_IMPORTED_MODULE_2__angular_platform_browser__["DOCUMENT"],] },] },
 ]; };
 var BrowserAnimationFactory = (function (_super) {
     __WEBPACK_IMPORTED_MODULE_0_tslib__["a" /* __extends */](BrowserAnimationFactory, _super);
@@ -100896,7 +101463,7 @@ AnimationRendererFactory.decorators = [
  */
 AnimationRendererFactory.ctorParameters = function () { return [
     { type: __WEBPACK_IMPORTED_MODULE_1__angular_core__["RendererFactory2"], },
-    { type: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["a" /* ɵAnimationEngine */], },
+    { type: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["b" /* ɵAnimationEngine */], },
     { type: __WEBPACK_IMPORTED_MODULE_1__angular_core__["NgZone"], },
 ]; };
 var BaseAnimationRenderer = (function () {
@@ -101098,7 +101665,8 @@ var AnimationRenderer = (function (_super) {
     AnimationRenderer.prototype.setProperty = function (el, name, value) {
         if (name.charAt(0) == ANIMATION_PREFIX) {
             if (name.charAt(1) == '.' && name == DISABLE_ANIMATIONS_FLAG) {
-                this.disableAnimations(el, !!value);
+                value = value === undefined ? true : !!value;
+                this.disableAnimations(el, /** @type {?} */ (value));
             }
             else {
                 this.engine.process(this.namespaceId, el, name.substr(1), value);
@@ -101178,7 +101746,7 @@ var InjectableAnimationEngine = (function (_super) {
         return _super.call(this, driver, normalizer) || this;
     }
     return InjectableAnimationEngine;
-}(__WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["a" /* ɵAnimationEngine */]));
+}(__WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["b" /* ɵAnimationEngine */]));
 InjectableAnimationEngine.decorators = [
     { type: __WEBPACK_IMPORTED_MODULE_1__angular_core__["Injectable"] },
 ];
@@ -101186,23 +101754,23 @@ InjectableAnimationEngine.decorators = [
  * @nocollapse
  */
 InjectableAnimationEngine.ctorParameters = function () { return [
-    { type: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["b" /* AnimationDriver */], },
+    { type: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["a" /* AnimationDriver */], },
     { type: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["c" /* ɵAnimationStyleNormalizer */], },
 ]; };
 /**
  * @return {?}
  */
 function instantiateSupportedAnimationDriver() {
-    if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["d" /* ɵsupportsWebAnimations */])()) {
+    if (Object(__WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["g" /* ɵsupportsWebAnimations */])()) {
         return new __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["e" /* ɵWebAnimationsDriver */]();
     }
-    return new __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["f" /* ɵNoopAnimationDriver */]();
+    return new __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["d" /* ɵNoopAnimationDriver */]();
 }
 /**
  * @return {?}
  */
 function instantiateDefaultStyleNormalizer() {
-    return new __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["g" /* ɵWebAnimationsStyleNormalizer */]();
+    return new __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["f" /* ɵWebAnimationsStyleNormalizer */]();
 }
 /**
  * @param {?} renderer
@@ -101216,10 +101784,10 @@ function instantiateRendererFactory(renderer, engine, zone) {
 var SHARED_ANIMATION_PROVIDERS = [
     { provide: __WEBPACK_IMPORTED_MODULE_3__angular_animations__["b" /* AnimationBuilder */], useClass: BrowserAnimationBuilder },
     { provide: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["c" /* ɵAnimationStyleNormalizer */], useFactory: instantiateDefaultStyleNormalizer },
-    { provide: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["a" /* ɵAnimationEngine */], useClass: InjectableAnimationEngine }, {
+    { provide: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["b" /* ɵAnimationEngine */], useClass: InjectableAnimationEngine }, {
         provide: __WEBPACK_IMPORTED_MODULE_1__angular_core__["RendererFactory2"],
         useFactory: instantiateRendererFactory,
-        deps: [__WEBPACK_IMPORTED_MODULE_2__angular_platform_browser__["ɵDomRendererFactory2"], __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["a" /* ɵAnimationEngine */], __WEBPACK_IMPORTED_MODULE_1__angular_core__["NgZone"]]
+        deps: [__WEBPACK_IMPORTED_MODULE_2__angular_platform_browser__["ɵDomRendererFactory2"], __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["b" /* ɵAnimationEngine */], __WEBPACK_IMPORTED_MODULE_1__angular_core__["NgZone"]]
     }
 ];
 /**
@@ -101227,13 +101795,13 @@ var SHARED_ANIMATION_PROVIDERS = [
  * include them in the BrowserModule.
  */
 var BROWSER_ANIMATIONS_PROVIDERS = [
-    { provide: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["b" /* AnimationDriver */], useFactory: instantiateSupportedAnimationDriver }
+    { provide: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["a" /* AnimationDriver */], useFactory: instantiateSupportedAnimationDriver }
 ].concat(SHARED_ANIMATION_PROVIDERS);
 /**
  * Separate providers from the actual module so that we can do a local modification in Google3 to
  * include them in the BrowserTestingModule.
  */
-var BROWSER_NOOP_ANIMATIONS_PROVIDERS = [{ provide: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["b" /* AnimationDriver */], useClass: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["f" /* ɵNoopAnimationDriver */] }].concat(SHARED_ANIMATION_PROVIDERS);
+var BROWSER_NOOP_ANIMATIONS_PROVIDERS = [{ provide: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["a" /* AnimationDriver */], useClass: __WEBPACK_IMPORTED_MODULE_4__angular_animations_browser__["d" /* ɵNoopAnimationDriver */] }].concat(SHARED_ANIMATION_PROVIDERS);
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
